@@ -169,10 +169,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Composer
 
     @objc func showComposerPanel() {
+        // Resolve the target before the panel activates this app, otherwise
+        // the frontmost app would be us.
+        let target = resolveTarget()
         if panelController == nil {
             panelController = ComposerPanelController(settingsStore: settingsStore)
         }
-        panelController?.showPanel()
+        panelController?.showPanel(target: target)
+    }
+
+    /// Pick the app to compose for from whatever is frontmost when the
+    /// shortcut fires. Apps the user enabled under Settings → General get
+    /// the screenshot flow. Mail and every other app get the Mail flow,
+    /// which is what the shortcut always did. When we are frontmost
+    /// ourselves (the panel is already open) keep its target.
+    private func resolveTarget() -> ComposerTarget {
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        if frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            return panelController?.currentTarget ?? .mail
+        }
+        guard let bundleIdentifier = frontmost?.bundleIdentifier else { return .mail }
+        return settingsStore.screenshotApps.target(forBundleIdentifier: bundleIdentifier) ?? .mail
     }
 
     // MARK: - Settings

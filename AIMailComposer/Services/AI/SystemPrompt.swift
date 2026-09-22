@@ -132,4 +132,111 @@ enum SystemPrompt {
 
         return (finalSystem, userParts.joined(separator: "\n"))
     }
+
+    // MARK: - Chat apps
+
+    /// Prompts for composing the user's next message in Discord or WhatsApp.
+    /// The conversation arrives as a screenshot attachment rather than text,
+    /// so the system prompt explains how to read the window.
+    static func composeChat(context: ChatContext, userThoughts: String, customInstructions: String = "") -> (system: String, user: String) {
+        let app = context.target.displayName
+        let system = """
+        You are a messaging assistant. The user is in \(app) on their Mac and wants \
+        help writing their next message. You receive a screenshot of the \(app) window \
+        plus the user's thoughts about what to say.
+
+        ## Reading the screenshot
+        - The conversation is in the main pane. The text box at the bottom is the user's \
+        own draft, possibly empty.
+        \(screenshotHints(for: context.target))
+        - Reply to the latest messages from the other side unless the user's thoughts \
+        point elsewhere.
+        - If no screenshot is attached or it is unreadable, write the message from the \
+        user's thoughts alone.
+
+        ## Rules
+        - Output ONLY the message text. No explanations, no quotation marks around it, \
+        no markdown, no subject line.
+        - Write in the language of the conversation. If the user's thoughts are in a \
+        different language, the conversation's language wins.
+        - Match the tone and register of the chat. Chat messages are short and casual: \
+        no email-style greetings and no sign-offs.
+        - Keep it about as long as the other messages in the chat. One to three \
+        sentences unless the user asks for more.
+        - Use emojis only if the conversation already uses them, and sparingly.
+        - If the user's draft in the text box already says part of it, continue from \
+        there instead of repeating it.
+
+        ## Writing Style
+        - Use simple, clear language and strong, active verbs.
+        - Remove filler words and empty qualifiers like "a bit" or "quite". Be direct.
+        - Be credible. Do not invent facts that are not in the conversation or the \
+        user's thoughts.
+        """
+
+        var userParts: [String] = []
+        userParts.append("## Chat window")
+        userParts.append("App: \(app)")
+        userParts.append("Window: \(context.displayTitle)")
+        userParts.append(context.hasScreenshot
+            ? "Screenshot: attached"
+            : "Screenshot: not available (Screen Recording permission missing), write from my thoughts alone")
+
+        userParts.append("")
+        userParts.append("## My thoughts for what to write")
+        userParts.append(userThoughts)
+
+        var finalSystem = system
+        let trimmedInstructions = customInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedInstructions.isEmpty {
+            finalSystem += "\n\n## Additional instructions from the user\n" + trimmedInstructions
+        }
+
+        return (finalSystem, userParts.joined(separator: "\n"))
+    }
+
+    /// TL;DR of the conversation visible in a chat window screenshot.
+    static func summarizeChat(context: ChatContext, customInstructions: String = "") -> (system: String, user: String) {
+        let app = context.target.displayName
+        let system = """
+        You are a chat summarizer. Produce a tight TL;DR of the conversation visible in \
+        the attached screenshot of a \(app) window, for someone who has not read it.
+
+        ## Rules
+        - Output ONLY the summary. No preamble, no explanations, no markdown headers.
+        - Start with a single sentence that captures the gist.
+        - Then list key points as plain-text bullets prefixed with "• ".
+        - 3 to 7 bullets. Use fewer if the conversation genuinely has fewer distinct points.
+        - Each bullet: one clear, complete idea, max 20 words.
+        - Capture decisions, plans, times and places, open questions, and anything the \
+        reader needs to do or know.
+        - Name people when they matter. Identify who is asking what of whom.
+        \(screenshotHints(for: context.target))
+        - Write in the language of the conversation.
+        - No filler. Skip phrases like "this chat discusses" or "in summary".
+        - Do not invent facts. If something is cut off or unclear in the screenshot, say so plainly.
+        """
+
+        var userParts: [String] = []
+        userParts.append("## Chat window to summarize")
+        userParts.append("App: \(app)")
+        userParts.append("Window: \(context.displayTitle)")
+        userParts.append("Screenshot: attached")
+
+        var finalSystem = system
+        let trimmedInstructions = customInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedInstructions.isEmpty {
+            finalSystem += "\n\n## Additional instructions from the user\n" + trimmedInstructions
+        }
+
+        return (finalSystem, userParts.joined(separator: "\n"))
+    }
+
+    /// How to tell the user's own messages apart in the screenshot: the
+    /// preset's layout hint, or a generic one for apps the user added.
+    private static func screenshotHints(for target: ComposerTarget) -> String {
+        let hint = target.screenshotHint
+            ?? "Work out which messages are the user's own from the layout: outgoing messages are usually right-aligned or marked with the user's name."
+        return "- " + hint
+    }
 }

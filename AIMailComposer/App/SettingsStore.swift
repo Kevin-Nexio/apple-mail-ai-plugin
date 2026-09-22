@@ -31,8 +31,42 @@ final class SettingsStore: ObservableObject {
     @AppStorage("customWritingInstructions") var customWritingInstructions: String = ""
     @AppStorage("hotkeyKeyCode") var hotkeyKeyCode: Int = 0x04    // kVK_ANSI_H
     @AppStorage("hotkeyModifiers") var hotkeyModifiers: Int = 0x0800 // optionKey
+    /// Apps where the shortcut composes from a window screenshot, opted in
+    /// one by one. Empty by default, so people who only use Mail are never
+    /// asked for Screen Recording. Lives in UserDefaults like every other
+    /// setting, under the app's stable bundle identifier, so it is kept
+    /// across updates and reinstalls.
+    @AppStorage("screenshotApps") private var screenshotAppsData: Data = Data()
 
     static let hotkeyDidChange = Notification.Name("hotkeyDidChange")
+
+    var screenshotApps: ScreenshotAppList {
+        ScreenshotAppList(data: screenshotAppsData)
+    }
+
+    func setScreenshotApp(_ preset: ComposerTarget, enabled: Bool) {
+        var list = screenshotApps
+        list.setEnabled(enabled, preset: preset)
+        saveScreenshotApps(list)
+    }
+
+    func addScreenshotApp(_ app: ScreenshotApp) {
+        var list = screenshotApps
+        list.add(app)
+        saveScreenshotApps(list)
+    }
+
+    func removeScreenshotApp(bundleIdentifier: String) {
+        var list = screenshotApps
+        list.remove(bundleIdentifier: bundleIdentifier)
+        saveScreenshotApps(list)
+    }
+
+    private func saveScreenshotApps(_ list: ScreenshotAppList) {
+        // @AppStorage doesn't reliably notify an enclosing ObservableObject.
+        objectWillChange.send()
+        screenshotAppsData = list.encoded()
+    }
 
     func setHotkey(keyCode: Int, modifiers: Int) {
         hotkeyKeyCode = keyCode

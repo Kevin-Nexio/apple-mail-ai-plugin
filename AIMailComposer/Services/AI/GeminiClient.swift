@@ -10,7 +10,7 @@ final class GeminiClient: AIClient {
         self.model = model
     }
 
-    func stream(systemPrompt: String, userMessage: String) -> AsyncThrowingStream<String, Error> {
+    func stream(systemPrompt: String, userMessage: String, attachments: [AIAttachment]) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -28,7 +28,7 @@ final class GeminiClient: AIClient {
                         "contents": [
                             [
                                 "role": "user",
-                                "parts": [["text": userMessage]],
+                                "parts": Self.userParts(text: userMessage, attachments: attachments),
                             ],
                         ],
                     ]
@@ -70,5 +70,14 @@ final class GeminiClient: AIClient {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// Gemini content parts: inline image data first, then the text.
+    static func userParts(text: String, attachments: [AIAttachment]) -> [[String: Any]] {
+        var parts: [[String: Any]] = attachments.map { attachment in
+            ["inline_data": ["mime_type": attachment.mediaType, "data": attachment.base64]]
+        }
+        parts.append(["text": text])
+        return parts
     }
 }

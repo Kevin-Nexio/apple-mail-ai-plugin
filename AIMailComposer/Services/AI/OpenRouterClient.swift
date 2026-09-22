@@ -4,16 +4,20 @@ import Foundation
 /// a thin variant of `OpenAIClient` with a different base URL and a pair of
 /// optional attribution headers.
 final class OpenRouterClient: AIClient {
+    static let privacySettingsURL = URL(string: "https://openrouter.ai/settings/privacy")!
+
     let provider = AIProvider.openrouter
     private let apiKey: String
     private let model: String
+    private let session: URLSession
 
-    init(apiKey: String, model: String) {
+    init(apiKey: String, model: String, session: URLSession = .shared) {
         self.apiKey = apiKey
         self.model = model
+        self.session = session
     }
 
-    func stream(systemPrompt: String, userMessage: String) -> AsyncThrowingStream<String, Error> {
+    func stream(systemPrompt: String, userMessage: String, attachments: [AIAttachment]) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -25,17 +29,19 @@ final class OpenRouterClient: AIClient {
                     request.setValue("https://github.com/aimail", forHTTPHeaderField: "HTTP-Referer")
                     request.setValue("Apple Mail AI Plugin", forHTTPHeaderField: "X-Title")
 
+                    // OpenRouter applies the account's routing/privacy settings.
+                    // No additional app-level guardrail restrictions are sent.
                     let body: [String: Any] = [
                         "model": model,
                         "stream": true,
                         "messages": [
                             ["role": "system", "content": systemPrompt],
-                            ["role": "user", "content": userMessage],
+                            ["role": "user", "content": OpenAICompatibleStream.userContent(text: userMessage, attachments: attachments)],
                         ],
                     ]
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let (bytes, response) = try await session.bytes(for: request)
 
                     guard let http = response as? HTTPURLResponse else {
                         throw AIClientError.requestFailed("No HTTP response")
@@ -43,7 +49,7 @@ final class OpenRouterClient: AIClient {
                     guard http.statusCode == 200 else {
                         var errorBody = ""
                         for try await line in bytes.lines { errorBody += line + "\n" }
-                        throw AIClientError.requestFailed("HTTP \(http.statusCode): \(errorBody)")
+                        throw Self.responseError(statusCode: http.statusCode, body: errorBody)
                     }
 
                     for try await line in bytes.lines {
@@ -63,5 +69,31 @@ final class OpenRouterClient: AIClient {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    static func responseError(statusCode: Int, body: String) -> AIClientError {
+        let json = try? JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any]
+        let error = json?["error"] as? [String: Any]
+        let metadata = error?["metadata"] as? [String: Any]
+        let reasons = metadata?["ineligibility_reasons"] as? [[String: Any]] ?? []
+
+        if statusCode == 404 {
+            // Match the account policy reason, not the generic "guardrails"
+            // wording, which can also describe unrelated routing restrictions.
+            for reason in reasons {
+                switch reason["reason"] as? String {
+                case "paid-model-training-violation-by-account":
+                    return .openRouterTrainingRestricted(modelType: "paid")
+                case "free-model-training-violation-by-account":
+                    return .openRouterTrainingRestricted(modelType: "free")
+                default:
+                    continue
+                }
+            }
+        }
+
+        let message = (error?["message"] as? String ?? body)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return .requestFailed("OpenRouter HTTP \(statusCode)\(message.isEmpty ? "" : ": \(message)")")
     }
 }

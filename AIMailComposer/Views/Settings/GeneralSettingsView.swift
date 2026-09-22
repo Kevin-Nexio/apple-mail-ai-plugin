@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var settingsStore: SettingsStore
@@ -15,10 +16,10 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section("How to Use") {
-                step(1, "Open or reply to an email in Apple Mail")
+                step(1, "Open a reply in Apple Mail, or a chat in an app enabled below")
                 step(2, "Press **\(shortcutDisplay)** to open the AI composer")
                 step(3, "Describe what you want to say")
-                step(4, "Your reply is generated and inserted into the draft")
+                step(4, "The message is generated and inserted into the draft or chat box")
             }
 
             Section {
@@ -27,6 +28,50 @@ struct GeneralSettingsView: View {
                 }
             } footer: {
                 Text("Click the shortcut, then press a new key combination. It works from anywhere.")
+            }
+
+            Section {
+                ForEach(ComposerTarget.presets, id: \.self) { preset in
+                    Toggle(isOn: Binding(
+                        get: { settingsStore.screenshotApps.isEnabled(preset) },
+                        set: { settingsStore.setScreenshotApp(preset, enabled: $0) }
+                    )) {
+                        ScreenshotAppLabel(
+                            name: preset.displayName,
+                            detail: nil,
+                            bundleIdentifier: preset.primaryBundleIdentifier,
+                            fallbackSymbol: preset.symbolName
+                        )
+                    }
+                    .toggleStyle(.switch)
+                }
+
+                ForEach(settingsStore.screenshotApps.customApps) { app in
+                    HStack {
+                        ScreenshotAppLabel(
+                            name: app.name,
+                            detail: app.bundleIdentifier,
+                            bundleIdentifier: app.bundleIdentifier,
+                            fallbackSymbol: "app.fill"
+                        )
+                        Spacer()
+                        Button {
+                            settingsStore.removeScreenshotApp(bundleIdentifier: app.bundleIdentifier)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Remove \(app.name)")
+                    }
+                }
+
+                Button("Add App…") { addScreenshotApp() }
+                    .controlSize(.small)
+            } header: {
+                Text("Compose from a Screenshot")
+            } footer: {
+                Text("Off for every app until you switch it on here, so using only Mail never asks for Screen Recording. When an enabled app is active, the shortcut takes a screenshot of its window and sends it to the selected model as the conversation context, then inserts the finished message into the app's text box without sending it. Needs a vision-capable model plus Screen Recording and Accessibility permissions. The list is kept across updates.")
             }
 
             Section {
@@ -44,6 +89,31 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Let the user pick any application bundle; its bundle identifier is
+    /// what the shortcut matches against the frontmost app.
+    private func addScreenshotApp() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose an App"
+        panel.message = "Pick an app where the shortcut should compose from a screenshot of its window."
+        panel.prompt = "Add"
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+
+        guard panel.runModal() == .OK,
+              let url = panel.url,
+              let bundle = Bundle(url: url),
+              let identifier = bundle.bundleIdentifier
+        else { return }
+
+        let info = bundle.infoDictionary ?? [:]
+        let name = (info["CFBundleDisplayName"] as? String)
+            ?? (info["CFBundleName"] as? String)
+            ?? url.deletingPathExtension().lastPathComponent
+        settingsStore.addScreenshotApp(ScreenshotApp(bundleIdentifier: identifier, name: name))
     }
 
     private func step(_ number: Int, _ text: LocalizedStringKey) -> some View {
@@ -123,6 +193,45 @@ struct GeneralSettingsView: View {
                 }
                 .controlSize(.small)
             }
+        }
+    }
+}
+
+// MARK: - Screenshot app row
+
+/// App icon (from the installed bundle when found) plus name, with the bundle
+/// identifier as a secondary line for apps the user added themselves.
+private struct ScreenshotAppLabel: View {
+    let name: String
+    let detail: String?
+    let bundleIdentifier: String
+    let fallbackSymbol: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            icon
+                .frame(width: 20, height: 20)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(name)
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        } else {
+            Image(systemName: fallbackSymbol)
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
         }
     }
 }

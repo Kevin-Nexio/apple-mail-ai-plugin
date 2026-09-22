@@ -7,19 +7,30 @@ final class ComposerPanelController: NSObject {
     private var viewModel: ComposerViewModel?
     private let settingsStore: SettingsStore
 
+    /// The app the open panel is composing for, `nil` while no panel is open.
+    var currentTarget: ComposerTarget? { viewModel?.target }
+
     init(settingsStore: SettingsStore) {
         self.settingsStore = settingsStore
         super.init()
     }
 
-    func showPanel() {
+    /// Show the panel for `target`. A panel already open for the same app
+    /// is brought forward. One open for a different app is replaced, unless
+    /// it is mid-generation, in which case it is brought forward so the
+    /// in-flight reply isn't thrown away.
+    func showPanel(target: ComposerTarget = .mail) {
         if let existingPanel = panel {
-            existingPanel.makeKeyAndOrderFront(nil)
-            NSApp.activate()
-            return
+            if currentTarget == target || viewModel?.isBusy == true {
+                existingPanel.makeKeyAndOrderFront(nil)
+                NSApp.activate()
+                return
+            }
+            // windowWillClose(_:) runs synchronously and clears the refs.
+            closePanel()
         }
 
-        let viewModel = ComposerViewModel(settingsStore: settingsStore) { [weak self] in
+        let viewModel = ComposerViewModel(target: target, settingsStore: settingsStore) { [weak self] in
             self?.closePanel()
         }
 
@@ -52,19 +63,20 @@ final class ComposerPanelController: NSObject {
 
         Task {
             await viewModel.activate()
-            if let frame = viewModel.context?.composeWindowFrame {
-                self.anchorPanel(toComposeWindow: frame)
+            if let frame = viewModel.anchorFrame {
+                self.anchorPanel(toTargetWindow: frame)
             }
         }
     }
 
-    /// Place the panel flush against the right edge of the Mail compose window,
-    /// so the two read as a single visual unit.
+    /// Place the panel flush against the right edge of the target window
+    /// (Mail compose window or chat window), so the two read as a single
+    /// visual unit.
     ///
-    /// `frame` comes from AppleScript/AX (top-left origin). We convert to
-    /// Cocoa's bottom-left origin and clamp to the screen containing the
-    /// compose window.
-    private func anchorPanel(toComposeWindow axFrame: CGRect) {
+    /// `frame` comes from AppleScript/AX/the window server (top-left
+    /// origin). We convert to Cocoa's bottom-left origin and clamp to the
+    /// screen containing the target window.
+    private func anchorPanel(toTargetWindow axFrame: CGRect) {
         guard let panel else { return }
         let screens = NSScreen.screens
         guard let primary = NSScreen.screens.first(where: { $0.frame.origin == .zero }) ?? screens.first else { return }
@@ -73,20 +85,20 @@ final class ComposerPanelController: NSObject {
         // AX y is measured from the top of the primary display.
         let primaryHeight = primary.frame.height
         let cocoaY = primaryHeight - axFrame.origin.y - axFrame.size.height
-        let composeCocoa = CGRect(x: axFrame.origin.x, y: cocoaY, width: axFrame.size.width, height: axFrame.size.height)
+        let targetCocoa = CGRect(x: axFrame.origin.x, y: cocoaY, width: axFrame.size.width, height: axFrame.size.height)
 
-        // Find the screen that contains the compose window's center.
-        let center = CGPoint(x: composeCocoa.midX, y: composeCocoa.midY)
+        // Find the screen that contains the target window's center.
+        let center = CGPoint(x: targetCocoa.midX, y: targetCocoa.midY)
         let targetScreen = screens.first(where: { $0.frame.contains(center) }) ?? primary
 
         let desiredWidth: CGFloat = max(panel.frame.width, 420)
-        let desiredHeight = min(composeCocoa.height, targetScreen.visibleFrame.height - 40)
+        let desiredHeight = min(targetCocoa.height, targetScreen.visibleFrame.height - 40)
 
         // Prefer the right side; fall back to the left if there isn't room.
-        var x = composeCocoa.maxX + 12
+        var x = targetCocoa.maxX + 12
         let screenFrame = targetScreen.visibleFrame
         if x + desiredWidth > screenFrame.maxX {
-            let leftX = composeCocoa.minX - desiredWidth - 12
+            let leftX = targetCocoa.minX - desiredWidth - 12
             if leftX >= screenFrame.minX {
                 x = leftX
             } else {
@@ -94,7 +106,7 @@ final class ComposerPanelController: NSObject {
             }
         }
 
-        var y = composeCocoa.origin.y + (composeCocoa.height - desiredHeight) / 2
+        var y = targetCocoa.origin.y + (targetCocoa.height - desiredHeight) / 2
         y = max(screenFrame.minY + 8, min(y, screenFrame.maxY - desiredHeight - 8))
 
         let target = NSRect(x: x, y: y, width: desiredWidth, height: desiredHeight)

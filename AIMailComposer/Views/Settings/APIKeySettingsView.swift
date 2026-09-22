@@ -49,6 +49,12 @@ struct APIKeySettingsView: View {
                    subtitle: "One key for every model on openrouter.ai",
                    placeholder: "sk-or-v1-…",
                    text: $openrouterKey)
+            VStack(alignment: .leading, spacing: 4) {
+                Link("OpenRouter privacy settings", destination: OpenRouterClient.privacySettingsURL)
+                Text("OpenRouter controls which model providers your account allows. Adjust data and training preferences there if a model is blocked.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             keyRow("TrustedTokens",
                    subtitle: "EU-sovereign models at api.trustedtokens.eu",
                    placeholder: "sk-bf…",

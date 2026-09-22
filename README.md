@@ -8,7 +8,7 @@
 <h1 align="center">Apple Mail AI Plugin</h1>
 
 <p align="center">
-  The missing AI agent for Apple Mail. Apple Mail AI Plugin is a native macOS menu bar app that uses AI (Claude, GPT, Gemini) to help you write email replies in Apple Mail.
+  The missing AI agent for Apple Mail. Apple Mail AI Plugin is a native macOS menu bar app that uses AI (Claude, GPT, Gemini) to help you write email replies in Apple Mail, and chat messages in Discord and WhatsApp.
 </p>
 
 <p align="center">
@@ -22,12 +22,15 @@
 
 The **Apple Mail AI Plugin** lives in your menu bar and connects directly to Apple Mail. When you're composing a reply, press **Option + H** to open the composer panel. Type a few thoughts about what you want to say, pick an AI model, and the app writes your reply — matching the language and tone of the conversation.
 
+Switch it on for **Discord**, **WhatsApp**, or any other app and the same shortcut works there too: the app takes a screenshot of the chat window, sends it to the model as the conversation context, and puts the finished message into the chat box for you to review and send.
+
 **Bring your own API key.** No accounts, no subscriptions, no middleman. Your key is stored in macOS Keychain and calls go directly to the provider.
 
 ## Features
 
 - **Menu bar app** — stays out of your way until you need it
 - **Works with Apple Mail** — reads your email thread, recipients, subject, and current draft
+- **Works in Discord, WhatsApp, and any app you add** — opt-in per app: screenshots the chat window as context and inserts the message into the chat box, never sending it for you
 - **Multiple AI providers** — Anthropic (Claude), OpenAI (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
 - **Local and custom servers** — connect to local or remote OpenAI-compatible servers, with an optional API key
 - **Streaming responses** — see the reply as it's being written
@@ -38,6 +41,8 @@ The **Apple Mail AI Plugin** lives in your menu bar and connects directly to App
 ## Installation
 
 **Requirements:** macOS 14 (Sonoma) or later. On recent macOS versions, Mail's AppleScript interface no longer reliably exposes compose windows, so the app can optionally use the Accessibility API to read your draft — grant **Accessibility** permission when the in-app banner suggests it (System Settings → Privacy & Security → Accessibility). The banner is dismissible; a blank new-message compose keeps working without it.
+
+Composing from a screenshot is off for every app until you enable it under **Settings → General → Compose from a Screenshot**, so using only Mail never asks for extra permissions. Enabled apps additionally need **Screen Recording** permission (System Settings → Privacy & Security → Screen & System Audio Recording) so the app can screenshot the chat window, and **Accessibility** so it can type the result into the chat box. macOS applies a new Screen Recording grant after the app relaunches. Without Screen Recording the message is written from your notes alone; without Accessibility it is copied to the clipboard for you to paste.
 
 ### Download
 
@@ -76,6 +81,8 @@ The Apple Mail AI Plugin calls AI providers directly. Add a provider API key or 
 
 > **Tip:** OpenRouter gives you access to models from many providers through a single key. Great if you want to try different models without managing multiple accounts.
 
+If OpenRouter reports a **model training violation (account settings)**, your account's privacy policy has excluded the available providers for that model. Choose another model, or open [OpenRouter privacy settings](https://openrouter.ai/settings/privacy) and allow routing to providers that may train on your data for the affected category (paid or free models). The app links to these settings from **Settings → Models → API Keys** and from the error message. The app sends no additional guardrail restrictions; OpenRouter account policies apply independently of TrustedTokens and cannot be disabled with an app setting. See [OpenRouter's provider policy documentation](https://openrouter.ai/docs/guides/privacy/provider-logging).
+
 ### TrustedTokens
 
 1. Go to [trustedtokens.eu](https://trustedtokens.eu/)
@@ -110,6 +117,16 @@ The optional key is stored in macOS Keychain and sent as a Bearer token for both
 5. Hit **Generate** — the reply streams into your compose window
 
 The app reads the full email thread for context, so the generated reply stays relevant to the conversation.
+
+### Discord, WhatsApp, and other apps
+
+1. In **Settings → General → Compose from a Screenshot**, switch on **Discord** or **WhatsApp**, or click **Add App…** to pick any other app (Slack, Telegram, Messages, …)
+2. Open a conversation in that app and make it the active app
+3. Press **⌥H** (or your shortcut) — the app screenshots the chat window and opens the composer next to it, with a thumbnail of what the model will see
+4. Type what you want to say and hit **Generate**
+5. Click **Insert into Discord** (or the app's name) — the message lands in the chat box, unsent, so you can read it over before pressing Enter
+
+Pick a vision-capable model for this (for example a current Claude, GPT, or Gemini model); text-only models reject the screenshot. **Summarize chat** gives you a TL;DR of the visible conversation instead. Switch an app off again and the shortcut goes back to the Mail flow there. The list is stored with your other settings and kept across updates.
 
 ## Building from Source
 
