@@ -1,12 +1,25 @@
 name: Build and Release
 
 on:
-  # Signing credentials must only be exposed after a deliberate release action.
-  # Configure required reviewers for the `release` environment in GitHub.
+  # Every push to main (i.e. every merged PR) cuts a release. GitHub only exposes
+  # secrets to pushes on this repository's own branches, never to fork PRs.
+  # To require a manual approval before signing, add required reviewers to the
+  # `release` environment in GitHub; each run will then pause for approval.
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'   # landing page, not shipped in the app
+      - '**.md'
+      - '.github/**'  # CI changes do not change the app
   workflow_dispatch:
 
 permissions:
   contents: write
+
+# Serialize releases so two quick merges never compute the same next version.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   build-and-release:
