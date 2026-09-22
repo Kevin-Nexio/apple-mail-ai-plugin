@@ -10,7 +10,7 @@ final class AnthropicClient: AIClient {
         self.model = model
     }
 
-    func stream(systemPrompt: String, userMessage: String) -> AsyncThrowingStream<String, Error> {
+    func stream(systemPrompt: String, userMessage: String, attachments: [AIAttachment]) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -27,7 +27,7 @@ final class AnthropicClient: AIClient {
                         "stream": true,
                         "system": systemPrompt,
                         "messages": [
-                            ["role": "user", "content": userMessage]
+                            ["role": "user", "content": Self.userContent(text: userMessage, attachments: attachments)]
                         ],
                     ]
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -76,5 +76,23 @@ final class AnthropicClient: AIClient {
             }
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    /// Anthropic content blocks: base64 image sources first, then the text.
+    /// A text-only request keeps the plain-string form.
+    static func userContent(text: String, attachments: [AIAttachment]) -> Any {
+        guard !attachments.isEmpty else { return text }
+        var blocks: [[String: Any]] = attachments.map { attachment in
+            [
+                "type": "image",
+                "source": [
+                    "type": "base64",
+                    "media_type": attachment.mediaType,
+                    "data": attachment.base64,
+                ],
+            ]
+        }
+        blocks.append(["type": "text", "text": text])
+        return blocks
     }
 }

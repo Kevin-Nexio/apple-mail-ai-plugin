@@ -14,7 +14,7 @@ final class LocalAIClient: AIClient {
         self.apiKey = apiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    func stream(systemPrompt: String, userMessage: String) -> AsyncThrowingStream<String, Error> {
+    func stream(systemPrompt: String, userMessage: String, attachments: [AIAttachment]) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -33,7 +33,7 @@ final class LocalAIClient: AIClient {
                         "stream": true,
                         "messages": [
                             ["role": "system", "content": systemPrompt],
-                            ["role": "user", "content": userMessage],
+                            ["role": "user", "content": OpenAICompatibleStream.userContent(text: userMessage, attachments: attachments)],
                         ],
                     ]
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)

@@ -16,8 +16,31 @@ struct ComposerView: View {
             Divider()
                 .opacity(0.4)
 
+            if viewModel.showsScreenRecordingBanner {
+                PermissionBanner(
+                    icon: "rectangle.dashed.badge.record",
+                    tint: .purple,
+                    title: "Screen Recording lets the plugin see this chat",
+                    message: "The message is written from a screenshot of the \(viewModel.target.displayName) window. "
+                        + "Grant Screen Recording, then relaunch the app if this banner stays.",
+                    grantLabel: "Grant Screen Recording",
+                    extraAction: (label: "Relaunch", action: { viewModel.relaunchForScreenRecording() }),
+                    onGrant: { viewModel.requestScreenRecordingPermission() },
+                    onOpenSettings: { viewModel.openScreenRecordingSettings() },
+                    onRetry: { Task { await viewModel.retry() } },
+                    onDismiss: { viewModel.dismissScreenRecordingBanner() }
+                )
+                Divider().opacity(0.4)
+            }
+
             if viewModel.showsAccessibilityBanner {
-                AXPermissionBanner(
+                PermissionBanner(
+                    icon: "lock.shield.fill",
+                    tint: .blue,
+                    title: accessibilityBannerTitle,
+                    message: accessibilityBannerMessage,
+                    grantLabel: "Grant Accessibility",
+                    extraAction: nil,
                     onGrant: { viewModel.requestAXPermission() },
                     onOpenSettings: { viewModel.openAccessibilitySettings() },
                     onRetry: { Task { await viewModel.retryAfterAXPermission() } },
@@ -64,20 +87,23 @@ struct ComposerView: View {
     private var contentArea: some View {
         switch viewModel.state {
         case .loadingContext:
-            LoadingState(label: "Reading your compose window…")
+            LoadingState(label: viewModel.loadingLabel)
 
         case .ready:
             ReadyState(
                 context: viewModel.context,
+                chatContext: viewModel.chatContext,
                 canSummarize: viewModel.canSummarize,
                 isBusy: viewModel.isBusy,
-                onSummarize: { Task { await viewModel.summarize() } }
+                onSummarize: { Task { await viewModel.summarize() } },
+                onRetake: { Task { await viewModel.retry() } }
             )
 
         case .generating:
             GeneratingState(
                 mode: viewModel.mode,
-                thoughts: viewModel.userThoughts
+                thoughts: viewModel.userThoughts,
+                label: generatingLabel
             )
 
         case .complete:
@@ -86,8 +112,10 @@ struct ComposerView: View {
                 mode: viewModel.mode,
                 userThoughts: viewModel.userThoughts,
                 isStreaming: viewModel.isStreaming,
+                insertLabel: viewModel.insertActionLabel,
+                insertionNotice: viewModel.insertionNotice,
                 onCopy: { viewModel.copyToClipboard() },
-                onInsert: { Task { await viewModel.insertIntoMail() } },
+                onInsert: { Task { await viewModel.insertIntoTarget() } },
                 onRegenerate: { Task { await viewModel.regenerate() } },
                 onEdit: { viewModel.backToEditing() }
             )
@@ -111,6 +139,9 @@ struct ComposerView: View {
     }
 
     private var inputPlaceholder: String {
+        if viewModel.chatContext != nil {
+            return "What should the message say?"
+        }
         guard let ctx = viewModel.context else {
             return "Describe the reply you want…"
         }
@@ -121,12 +152,20 @@ struct ComposerView: View {
     }
 
     private var headerTitle: String {
-        if case .loadingContext = viewModel.state { return "Reading Mail…" }
+        if case .loadingContext = viewModel.state {
+            return viewModel.target.usesScreenshot ? "Reading \(viewModel.target.displayName)…" : "Reading Mail…"
+        }
+        if let chat = viewModel.chatContext { return chat.displayTitle }
         guard let ctx = viewModel.context else { return "Apple Mail AI Plugin" }
         return ctx.displaySubject
     }
 
     private var headerSubtitle: String? {
+        if let chat = viewModel.chatContext {
+            return chat.hasScreenshot
+                ? "\(chat.target.displayName) · screenshot attached"
+                : "\(chat.target.displayName) · no screenshot"
+        }
         guard let ctx = viewModel.context else { return nil }
         if ctx.isNewEmail {
             if ctx.hasRecipients {
@@ -146,8 +185,34 @@ struct ComposerView: View {
         if case .error = viewModel.state { return .red }
         if viewModel.isBusy { return .orange }
         if viewModel.state == .complete { return .green }
+        if viewModel.chatContext != nil { return .blue }
         if viewModel.context?.isNewEmail == true { return .blue }
         return .green
+    }
+
+    private var generatingLabel: String {
+        switch (viewModel.mode, viewModel.target.usesScreenshot) {
+        case (.summarize, true): return "Summarizing chat…"
+        case (.summarize, false): return "Summarizing thread…"
+        case (.reply, true): return "Drafting message…"
+        case (.reply, false): return "Drafting reply…"
+        }
+    }
+
+    private var accessibilityBannerTitle: String {
+        viewModel.target.usesScreenshot
+            ? "Accessibility lets the plugin type into \(viewModel.target.displayName)"
+            : "Accessibility helps read this reply"
+    }
+
+    private var accessibilityBannerMessage: String {
+        if viewModel.target.usesScreenshot {
+            return "Without it the finished message is copied to your clipboard for you to paste. "
+                + "Grant Accessibility so the plugin can put it into the message box for you."
+        }
+        return "Mail's AppleScript didn't expose the recipients or draft. "
+            + "Grant Accessibility so the plugin can read them directly "
+            + "from the compose window."
     }
 }
 
@@ -226,22 +291,34 @@ private struct LoadingState: View {
 
 private struct ReadyState: View {
     let context: ComposerContext?
+    let chatContext: ChatContext?
     let canSummarize: Bool
     let isBusy: Bool
     let onSummarize: () -> Void
+    let onRetake: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if let context {
+                if let chatContext {
+                    ChatContextCard(context: chatContext, onRetake: onRetake)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                } else if let context {
                     ContextSummaryCard(context: context)
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
-                    if canSummarize {
-                        SummarizeThreadButton(action: onSummarize)
-                            .padding(.horizontal, 16)
-                            .disabled(isBusy)
-                    }
+                }
+                if canSummarize {
+                    SummarizeThreadButton(
+                        title: chatContext != nil ? "Summarize chat" : "Summarize thread",
+                        subtitle: chatContext != nil
+                            ? "TL;DR of the conversation in the screenshot"
+                            : "TL;DR of the conversation so far",
+                        action: onSummarize
+                    )
+                    .padding(.horizontal, 16)
+                    .disabled(isBusy)
                 }
                 Spacer(minLength: 0)
             }
@@ -251,6 +328,8 @@ private struct ReadyState: View {
 }
 
 private struct SummarizeThreadButton: View {
+    let title: String
+    let subtitle: String
     let action: () -> Void
 
     @State private var hovering = false
@@ -261,9 +340,9 @@ private struct SummarizeThreadButton: View {
                 Image(systemName: "text.alignleft")
                     .font(.system(size: 11, weight: .semibold))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Summarize thread")
+                    Text(title)
                         .font(.system(size: 12, weight: .semibold))
-                    Text("TL;DR of the conversation so far")
+                    Text(subtitle)
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                 }
@@ -400,6 +479,7 @@ private struct ThreadMessageRow: View {
 private struct GeneratingState: View {
     let mode: ComposerViewModel.Mode
     let thoughts: String
+    let label: String
     @State private var pulse = false
 
     var body: some View {
@@ -419,7 +499,7 @@ private struct GeneratingState: View {
                 ShimmerDot(delay: 0.0)
                 ShimmerDot(delay: 0.15)
                 ShimmerDot(delay: 0.30)
-                Text(mode == .summarize ? "Summarizing thread…" : "Drafting reply…")
+                Text(label)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -496,6 +576,8 @@ private struct ReplyResultView: View {
     let mode: ComposerViewModel.Mode
     let userThoughts: String
     let isStreaming: Bool
+    let insertLabel: String
+    let insertionNotice: String?
     let onCopy: () -> Void
     let onInsert: () -> Void
     let onRegenerate: () -> Void
@@ -557,7 +639,7 @@ private struct ReplyResultView: View {
                             Spacer()
                             PrimaryActionButton(
                                 icon: "doc.on.doc",
-                                label: mode == .summarize ? "Copy summary" : "Copy message",
+                                label: mode == .summarize ? "Copy summary" : insertLabel,
                                 action: mode == .summarize ? primaryCopyAction : onInsert
                             )
                             .keyboardShortcut(.return, modifiers: .command)
@@ -565,6 +647,19 @@ private struct ReplyResultView: View {
                         }
                         .opacity(isStreaming ? 0.55 : 1.0)
                         .animation(.easeOut(duration: 0.15), value: isStreaming)
+
+                        if let insertionNotice {
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "doc.on.clipboard")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.top, 2)
+                                Text(insertionNotice)
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
                     }
                 }
             }
@@ -726,9 +821,20 @@ private struct ErrorState: View {
     }
 }
 
-// MARK: - Accessibility permission banner
+// MARK: - Permission banners
 
-private struct AXPermissionBanner: View {
+/// Dismissible strip explaining a missing macOS permission, with the system
+/// prompt, System Settings, and a retry one click away. Used for
+/// Accessibility (Mail reads, chat-box writes) and Screen Recording (chat
+/// screenshots).
+private struct PermissionBanner: View {
+    let icon: String
+    let tint: Color
+    let title: String
+    let message: String
+    let grantLabel: String
+    /// Optional third button, e.g. "Relaunch" after a Screen Recording grant.
+    let extraAction: (label: String, action: () -> Void)?
     let onGrant: () -> Void
     let onOpenSettings: () -> Void
     let onRetry: () -> Void
@@ -736,27 +842,29 @@ private struct AXPermissionBanner: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "lock.shield.fill")
+            Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundStyle(.blue)
+                .foregroundStyle(tint)
                 .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Accessibility helps read this reply")
+                Text(title)
                     .font(.system(size: 12, weight: .semibold))
 
-                Text("Mail's AppleScript didn't expose the recipients or draft. "
-                     + "Grant Accessibility so the plugin can read them directly "
-                     + "from the compose window.")
+                Text(message)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 8) {
-                    Button("Grant Accessibility", action: onGrant)
+                    Button(grantLabel, action: onGrant)
                         .controlSize(.small)
                     Button("Open Settings", action: onOpenSettings)
                         .controlSize(.small)
+                    if let extraAction {
+                        Button(extraAction.label, action: extraAction.action)
+                            .controlSize(.small)
+                    }
                     Button("Retry", action: onRetry)
                         .controlSize(.small)
                 }
@@ -774,7 +882,72 @@ private struct AXPermissionBanner: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.blue.opacity(0.06))
+        .background(tint.opacity(0.06))
+    }
+}
+
+// MARK: - Chat context card
+
+/// What the model will see for a chat target: the app, the window, and a
+/// thumbnail of the screenshot that goes out with the request. Showing the
+/// image keeps it obvious that a picture of the chat leaves the machine.
+private struct ChatContextCard: View {
+    let context: ChatContext
+    let onRetake: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: context.target.symbolName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Text(context.hasScreenshot ? "\(context.target.displayName) · screenshot" : context.target.displayName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.6)
+                Spacer()
+                ActionChip(icon: "camera", label: "Retake", action: onRetake)
+            }
+
+            if let screenshot = context.screenshot {
+                Image(decorative: screenshot.cgImage, scale: 1)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: 170, alignment: .leading)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                    )
+                Text("\(context.displayTitle). This screenshot is sent to the selected model as the conversation context.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "eye.slash")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 2)
+                    Text(context.captureError
+                         ?? "No screenshot. Grant Screen Recording so the plugin can read the conversation. "
+                         + "Until then the message is written from your notes alone.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.primary.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        )
     }
 }
 
