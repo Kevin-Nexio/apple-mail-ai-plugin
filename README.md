@@ -76,6 +76,8 @@ The Apple Mail AI Plugin calls AI providers directly. Add a provider API key or 
 
 > **Tip:** OpenRouter gives you access to models from many providers through a single key. Great if you want to try different models without managing multiple accounts.
 
+If OpenRouter reports a **model training violation (account settings)**, your account's privacy policy has excluded the available providers for that model. Choose another model, or open [OpenRouter privacy settings](https://openrouter.ai/settings/privacy) and allow routing to providers that may train on your data for the affected category (paid or free models). The app links to these settings from **Settings → Models → API Keys** and from the error message. The app sends no additional guardrail restrictions; OpenRouter account policies apply independently of TrustedTokens and cannot be disabled with an app setting. See [OpenRouter's provider policy documentation](https://openrouter.ai/docs/guides/privacy/provider-logging).
+
 ### TrustedTokens
 
 1. Go to [trustedtokens.eu](https://trustedtokens.eu/)

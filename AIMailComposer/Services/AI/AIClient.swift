@@ -23,6 +23,7 @@ enum AIClientError: LocalizedError {
     case missingAPIKey(AIProvider)
     case requestFailed(String)
     case invalidResponse(String)
+    case openRouterTrainingRestricted(modelType: String)
 
     var errorDescription: String? {
         switch self {
@@ -32,6 +33,17 @@ enum AIClientError: LocalizedError {
             return "API request failed: \(msg)"
         case .invalidResponse(let msg):
             return "Invalid API response: \(msg)"
+        case .openRouterTrainingRestricted(let modelType):
+            return "OpenRouter blocked this model because your account disallows \(modelType) model providers that may train on your data. Choose another model, or allow those providers in OpenRouter privacy settings."
+        }
+    }
+
+    var recoveryURL: URL? {
+        switch self {
+        case .openRouterTrainingRestricted:
+            return OpenRouterClient.privacySettingsURL
+        default:
+            return nil
         }
     }
 }

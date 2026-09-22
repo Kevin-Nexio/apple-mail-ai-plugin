@@ -92,9 +92,10 @@ struct ComposerView: View {
                 onEdit: { viewModel.backToEditing() }
             )
 
-        case .error(let message):
+        case .error(let message, let recoveryURL):
             ErrorState(
                 message: message,
+                recoveryURL: recoveryURL,
                 onRetry: { Task { await viewModel.retry() } }
             )
         }
@@ -700,6 +701,7 @@ private struct PrimaryActionButton: View {
 
 private struct ErrorState: View {
     let message: String
+    let recoveryURL: URL?
     let onRetry: () -> Void
 
     var body: some View {
@@ -713,6 +715,9 @@ private struct ErrorState: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
+            if let recoveryURL {
+                Link("OpenRouter privacy settings", destination: recoveryURL)
+            }
             Button("Try again") { onRetry() }
                 .controlSize(.regular)
             Spacer()

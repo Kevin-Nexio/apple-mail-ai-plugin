@@ -8,7 +8,7 @@ final class ComposerViewModel: ObservableObject {
         case ready
         case generating   // request sent, no chunks received yet
         case complete     // have content (may still be streaming — see isStreaming)
-        case error(String)
+        case error(String, recoveryURL: URL? = nil)
     }
 
     /// Which kind of generation produced (or is producing) the current output.
@@ -202,7 +202,10 @@ final class ComposerViewModel: ObservableObject {
             // Preserve any partial output — but only surface the error if we
             // got nothing back at all, otherwise the partial is still useful.
             if generatedReply.isEmpty {
-                state = .error(error.localizedDescription)
+                state = .error(
+                    error.localizedDescription,
+                    recoveryURL: (error as? AIClientError)?.recoveryURL
+                )
             }
         }
     }
