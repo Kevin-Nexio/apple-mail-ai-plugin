@@ -16,6 +16,7 @@ struct APIKeySettingsView: View {
 
     var body: some View {
         Form {
+            codexSection
             keySection
             modelSections
         }
@@ -36,6 +37,71 @@ struct APIKeySettingsView: View {
         .onChange(of: trustedtokensKey) { _, _ in scheduleAutoSave() }
         .onChange(of: localKey) { _, _ in scheduleAutoSave() }
         .onChange(of: localBaseURL) { _, _ in scheduleAutoSave() }
+        .task {
+            if case .checking = settingsStore.codexConnectionStatus {
+                await settingsStore.fetchModels(for: .codex)
+            }
+        }
+    }
+
+    // MARK: - ChatGPT subscription
+
+    private var codexSection: some View {
+        Section {
+            LabeledContent("Connection") {
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(codexStatusColor)
+                        .frame(width: 9, height: 9)
+                    Text(codexStatusText)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Button {
+                Task { await settingsStore.fetchModels(for: .codex) }
+            } label: {
+                HStack(spacing: 7) {
+                    if settingsStore.isFetchingCodex {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    Text("Check Again")
+                }
+            }
+            .disabled(settingsStore.isFetchingCodex)
+        } header: {
+            Text("ChatGPT Subscription")
+        } footer: {
+            Text("Uses the ChatGPT account already connected to Codex on this Mac. No OpenAI API key or ChatGPT token is copied into this app. Email, chat, and enabled screenshot content is sent to OpenAI when this provider is selected.")
+        }
+    }
+
+    private var codexStatusText: String {
+        switch settingsStore.codexConnectionStatus {
+        case .checking:
+            return "Checking Codex…"
+        case .connected(let email, let plan):
+            let account = email.map { "Connected as \($0)" } ?? "Connected with ChatGPT"
+            let planName = plan.map { $0.replacingOccurrences(of: "_", with: " ").capitalized }
+            return planName.map { "\(account) · \($0)" } ?? account
+        case .signedOut:
+            return "Codex found, but ChatGPT is signed out"
+        case .otherAuthentication(let method):
+            return "Codex uses \(method), not your ChatGPT subscription"
+        case .unavailable(let message):
+            return message
+        }
+    }
+
+    private var codexStatusColor: Color {
+        switch settingsStore.codexConnectionStatus {
+        case .connected: return .green
+        case .checking: return .secondary
+        case .signedOut, .otherAuthentication: return .orange
+        case .unavailable: return .red
+        }
     }
 
     // MARK: - API Keys
@@ -133,7 +199,8 @@ struct APIKeySettingsView: View {
     // MARK: - Model Selection
 
     private var isFetching: Bool {
-        settingsStore.isFetchingAnthropic
+        settingsStore.isFetchingCodex
+            || settingsStore.isFetchingAnthropic
             || settingsStore.isFetchingOpenAI
             || settingsStore.isFetchingGemini
             || settingsStore.isFetchingOpenRouter
@@ -209,7 +276,7 @@ struct APIKeySettingsView: View {
             Text("No models available")
                 .font(.subheadline)
                 .fontWeight(.medium)
-            Text("Enter a provider API key or a Local AI URL above to load models.")
+            Text("Connect ChatGPT through Codex, enter a provider API key, or add a Local AI URL above to load models.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -257,6 +324,9 @@ struct APIKeySettingsView: View {
         VStack(alignment: .leading, spacing: 2) {
             if let err = settingsStore.anthropicFetchError {
                 Text("Anthropic: \(err)").foregroundStyle(.red)
+            }
+            if let err = settingsStore.codexFetchError {
+                Text("ChatGPT via Codex: \(err)").foregroundStyle(.red)
             }
             if let err = settingsStore.openaiFetchError {
                 Text("OpenAI: \(err)").foregroundStyle(.red)

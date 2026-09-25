@@ -1277,6 +1277,7 @@ private struct ProviderGlyph: View {
 
     private var color: Color {
         switch provider {
+        case .codex: return Color(red: 0.12, green: 0.68, blue: 0.52)
         case .anthropic: return Color(red: 0.85, green: 0.50, blue: 0.30)
         case .openai: return Color(red: 0.10, green: 0.60, blue: 0.46)
         case .gemini: return Color(red: 0.30, green: 0.52, blue: 0.95)

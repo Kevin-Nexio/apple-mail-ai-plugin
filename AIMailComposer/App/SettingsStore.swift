@@ -93,18 +93,22 @@ final class SettingsStore: ObservableObject {
 
     @AppStorage("localAIBaseURL") var localAIBaseURL: String = ""
 
+    @Published var codexModels: [AIModel] = []
     @Published var anthropicModels: [AIModel] = []
     @Published var openaiModels: [AIModel] = []
     @Published var geminiModels: [AIModel] = []
     @Published var openrouterModels: [AIModel] = []
     @Published var trustedtokensModels: [AIModel] = []
     @Published var localModels: [AIModel] = []
+    @Published var isFetchingCodex = false
     @Published var isFetchingAnthropic = false
     @Published var isFetchingOpenAI = false
     @Published var isFetchingGemini = false
     @Published var isFetchingOpenRouter = false
     @Published var isFetchingTrustedTokens = false
     @Published var isFetchingLocal = false
+    @Published var codexFetchError: String?
+    @Published var codexConnectionStatus: CodexConnectionStatus = .checking
     @Published var anthropicFetchError: String?
     @Published var openaiFetchError: String?
     @Published var geminiFetchError: String?
@@ -114,7 +118,7 @@ final class SettingsStore: ObservableObject {
     @Published var trendingModels: [TrendingModel] = []
 
     var allModels: [AIModel] {
-        anthropicModels + openaiModels + geminiModels + openrouterModels + trustedtokensModels + localModels
+        codexModels + anthropicModels + openaiModels + geminiModels + openrouterModels + trustedtokensModels + localModels
     }
 
     /// Models grouped by provider. Within each group, sorted by release date
@@ -124,6 +128,7 @@ final class SettingsStore: ObservableObject {
         AIProvider.allCases.compactMap { provider in
             let models: [AIModel]
             switch provider {
+            case .codex: models = codexModels
             case .anthropic: models = anthropicModels
             case .openai: models = openaiModels
             case .gemini: models = geminiModels
@@ -156,6 +161,7 @@ final class SettingsStore: ObservableObject {
                 if let provider = entry.provider {
                     let providerModels: [AIModel]
                     switch provider {
+                    case .codex:          providerModels = codexModels
                     case .anthropic:     providerModels = anthropicModels
                     case .openai:        providerModels = openaiModels
                     case .gemini:        providerModels = geminiModels
@@ -259,6 +265,7 @@ final class SettingsStore: ObservableObject {
     /// they don't resurface on the next launch.
     func clearModels(for provider: AIProvider) {
         switch provider {
+        case .codex: codexModels = []; codexFetchError = nil
         case .anthropic: anthropicModels = []; anthropicFetchError = nil
         case .openai: openaiModels = []; openaiFetchError = nil
         case .gemini: geminiModels = []; geminiFetchError = nil
@@ -294,6 +301,23 @@ final class SettingsStore: ObservableObject {
 
     func fetchModels(for provider: AIProvider) async {
         switch provider {
+        case .codex:
+            isFetchingCodex = true
+            codexFetchError = nil
+            codexConnectionStatus = .checking
+            let inspection = await CodexAppServerClient.inspect()
+            codexConnectionStatus = inspection.status
+            if case .connected = inspection.status {
+                codexModels = inspection.models
+                ensureDefaultSelection()
+            } else {
+                codexModels = []
+            }
+            if case .unavailable(let message) = inspection.status {
+                codexFetchError = message
+            }
+            isFetchingCodex = false
+
         case .local:
             isFetchingLocal = true
             localFetchError = nil
@@ -312,6 +336,8 @@ final class SettingsStore: ObservableObject {
             guard let apiKey = getAPIKey(for: provider), !apiKey.isEmpty else { return }
 
             switch provider {
+            case .codex:
+                break // handled above
             case .anthropic:
                 isFetchingAnthropic = true
                 anthropicFetchError = nil
@@ -384,7 +410,9 @@ final class SettingsStore: ObservableObject {
 
         await withTaskGroup(of: Void.self) { group in
             for provider in AIProvider.allCases {
-                if provider == .local {
+                if provider == .codex {
+                    group.addTask { await self.fetchModels(for: .codex) }
+                } else if provider == .local {
                     // The Local AI key is optional — attempt if a URL is set.
                     if !localAIBaseURL.isEmpty {
                         group.addTask { await self.fetchModels(for: .local) }
@@ -444,10 +472,11 @@ final class SettingsStore: ObservableObject {
     /// True when at least one configured provider's last fetch failed.
     private var hasFetchFailures: Bool {
         if !localAIBaseURL.isEmpty, localFetchError != nil { return true }
-        for provider in AIProvider.allCases where provider != .local {
+        for provider in AIProvider.allCases where provider != .local && provider != .codex {
             guard let key = getAPIKey(for: provider), !key.isEmpty else { continue }
             let error: String?
             switch provider {
+            case .codex: error = nil
             case .anthropic: error = anthropicFetchError
             case .openai: error = openaiFetchError
             case .gemini: error = geminiFetchError
