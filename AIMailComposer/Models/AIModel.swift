@@ -33,6 +33,11 @@ extension AIModel {
             else if id.contains("sol") { score += 30 }
             else if id.contains("luna") { score += 20 }
 
+        case .chatgptWeb:
+            if id.contains("gpt-5") { score += 40 }
+            else if id.contains("gpt-4") { score += 30 }
+            if id.contains("mini") { score -= 8 }
+
         case .anthropic:
             if id.contains("opus") { score += 30 }
             else if id.contains("sonnet") { score += 22 }

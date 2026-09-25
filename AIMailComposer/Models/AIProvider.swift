@@ -2,6 +2,7 @@ import Foundation
 
 enum AIProvider: String, CaseIterable, Codable, Identifiable {
     case codex
+    case chatgptWeb
     case anthropic
     case openai
     case gemini
@@ -14,6 +15,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
     var displayName: String {
         switch self {
         case .codex: return "ChatGPT (via Codex)"
+        case .chatgptWeb: return "ChatGPT Web (Experimental)"
         case .anthropic: return "Anthropic"
         case .openai: return "OpenAI"
         case .gemini: return "Google Gemini"
@@ -27,6 +29,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
     var badgeLetter: String {
         switch self {
         case .codex: return "C"
+        case .chatgptWeb: return "W"
         case .anthropic: return "A"
         case .openai: return "O"
         case .gemini: return "G"

@@ -32,6 +32,7 @@ Use your **ChatGPT subscription through Codex**, bring your own API key, or conn
 - **Works with Apple Mail** — reads your email thread, recipients, subject, and current draft
 - **Works in Discord, WhatsApp, and any app you add** — opt-in per app: screenshots the chat window as context and inserts the message into the chat box, never sending it for you
 - **ChatGPT subscription** — use the ChatGPT account already connected to Codex, without adding an OpenAI API key
+- **ChatGPT Web (experimental)** — use a local community browser relay as a separate provider, with its own connection light
 - **Multiple AI providers** — Anthropic (Claude), OpenAI API (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
 - **Local and custom servers** — connect to local or remote OpenAI-compatible servers, with an optional API key
 - **Streaming responses** — see the reply as it's being written
@@ -61,6 +62,20 @@ You do not need an API key to use a ChatGPT subscription. For other providers, a
 4. Check that **ChatGPT Subscription** has a green status light, then select **ChatGPT (via Codex)** in the model picker
 
 The plugin starts Codex locally and uses its app-server protocol. Codex keeps control of the ChatGPT credentials; the plugin never reads or stores an access token. It also rejects Codex sessions authenticated with an API key so this mode cannot silently create API charges. The app-server protocol is currently experimental, so a future Codex update may require a plugin update.
+
+### ChatGPT Web Subscription (Experimental)
+
+This mode connects to the community project [chatgpt-web-provider](https://github.com/guberm/chatgpt-web-provider). The relay controls a dedicated Chromium profile logged in to ChatGPT and exposes an OpenAI-compatible API on your Mac. It is separate from the Codex provider and is intended to use the regular ChatGPT web allowance reported by that project.
+
+1. Install and configure `chatgpt-web-provider` by following its [browser backend setup](https://github.com/guberm/chatgpt-web-provider#browser-backend-setup)
+2. Keep the relay bound to `127.0.0.1`, start it on the default port `8791`, and use a long local access token
+3. Open **Settings → Models → API Keys** in Apple Mail AI Plugin
+4. Enable **ChatGPT Web (Experimental)**, paste the same relay token, and check that its status light turns green
+5. Select a model under **ChatGPT Web (Experimental)** in the model picker
+
+The plugin only accepts a loopback relay URL (`localhost`, `127.0.0.1`, or `::1`). The relay token is stored in macOS Keychain. Every generated email starts a fresh web conversation so context from an earlier email is not intentionally reused.
+
+This is unofficial browser automation. ChatGPT UI or Cloudflare changes can break it, and automated use may trigger warnings or account restrictions. Use a dedicated browser profile, keep the relay local, and do not use this mode if that risk is unacceptable. The plugin never reads ChatGPT cookies or account tokens; those remain inside the relay's browser profile.
 
 ### Anthropic (Claude)
 
@@ -178,6 +193,7 @@ make notarize \
 ## Privacy
 
 - ChatGPT subscription requests, including enabled chat screenshots, are sent to OpenAI through the local Codex process; Codex retains control of the account credentials
+- Experimental ChatGPT Web requests are sent to a loopback-only community relay, which controls its own isolated ChatGPT browser profile
 - API keys are stored in macOS Keychain — never written to disk as plain text
 - Email content is sent directly to your chosen AI provider and nowhere else
 - No analytics, no telemetry, no data collection
