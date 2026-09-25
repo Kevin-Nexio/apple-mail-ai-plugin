@@ -5,12 +5,16 @@ import SwiftUI
 @MainActor
 final class SettingsStore: ObservableObject {
     private let keychainService = KeychainService()
+    private var chatGPTWebFetchGeneration = 0
 
     init() {
         // Start from the last-known model lists so the picker (and the
         // stored model selection) works immediately, before — or without —
         // a successful fetch this launch.
         if let cached = ModelCache.load() {
+            if chatGPTWebEnabled {
+                chatGPTWebModels = cached.models.filter { $0.provider == .chatgptWeb }
+            }
             anthropicModels = cached.models.filter { $0.provider == .anthropic }
             openaiModels = cached.models.filter { $0.provider == .openai }
             geminiModels = cached.models.filter { $0.provider == .gemini }
@@ -92,19 +96,25 @@ final class SettingsStore: ObservableObject {
     }
 
     @AppStorage("localAIBaseURL") var localAIBaseURL: String = ""
+    @AppStorage("chatGPTWebEnabled") var chatGPTWebEnabled: Bool = false
+    @AppStorage("chatGPTWebBaseURL") var chatGPTWebBaseURL: String = "http://127.0.0.1:8791"
 
+    @Published var chatGPTWebModels: [AIModel] = []
     @Published var anthropicModels: [AIModel] = []
     @Published var openaiModels: [AIModel] = []
     @Published var geminiModels: [AIModel] = []
     @Published var openrouterModels: [AIModel] = []
     @Published var trustedtokensModels: [AIModel] = []
     @Published var localModels: [AIModel] = []
+    @Published var isFetchingChatGPTWeb = false
     @Published var isFetchingAnthropic = false
     @Published var isFetchingOpenAI = false
     @Published var isFetchingGemini = false
     @Published var isFetchingOpenRouter = false
     @Published var isFetchingTrustedTokens = false
     @Published var isFetchingLocal = false
+    @Published var chatGPTWebFetchError: String?
+    @Published var chatGPTWebConnectionStatus: ChatGPTWebConnectionStatus = .disabled
     @Published var anthropicFetchError: String?
     @Published var openaiFetchError: String?
     @Published var geminiFetchError: String?
@@ -114,7 +124,7 @@ final class SettingsStore: ObservableObject {
     @Published var trendingModels: [TrendingModel] = []
 
     var allModels: [AIModel] {
-        anthropicModels + openaiModels + geminiModels + openrouterModels + trustedtokensModels + localModels
+        chatGPTWebModels + anthropicModels + openaiModels + geminiModels + openrouterModels + trustedtokensModels + localModels
     }
 
     /// Models grouped by provider. Within each group, sorted by release date
@@ -124,6 +134,7 @@ final class SettingsStore: ObservableObject {
         AIProvider.allCases.compactMap { provider in
             let models: [AIModel]
             switch provider {
+            case .chatgptWeb: models = chatGPTWebModels
             case .anthropic: models = anthropicModels
             case .openai: models = openaiModels
             case .gemini: models = geminiModels
@@ -156,6 +167,7 @@ final class SettingsStore: ObservableObject {
                 if let provider = entry.provider {
                     let providerModels: [AIModel]
                     switch provider {
+                    case .chatgptWeb:     providerModels = chatGPTWebModels
                     case .anthropic:     providerModels = anthropicModels
                     case .openai:        providerModels = openaiModels
                     case .gemini:        providerModels = geminiModels
@@ -259,6 +271,12 @@ final class SettingsStore: ObservableObject {
     /// they don't resurface on the next launch.
     func clearModels(for provider: AIProvider) {
         switch provider {
+        case .chatgptWeb:
+            chatGPTWebFetchGeneration += 1
+            chatGPTWebModels = []
+            chatGPTWebFetchError = nil
+            isFetchingChatGPTWeb = false
+            chatGPTWebConnectionStatus = chatGPTWebEnabled ? .checking : .disabled
         case .anthropic: anthropicModels = []; anthropicFetchError = nil
         case .openai: openaiModels = []; openaiFetchError = nil
         case .gemini: geminiModels = []; geminiFetchError = nil
@@ -275,6 +293,10 @@ final class SettingsStore: ObservableObject {
 
     func setAPIKey(_ key: String, for provider: AIProvider) throws {
         try keychainService.setKey(key, for: provider)
+        if provider == .chatgptWeb {
+            chatGPTWebFetchGeneration += 1
+            isFetchingChatGPTWeb = false
+        }
     }
 
     func getAPIKey(for provider: AIProvider) -> String? {
@@ -283,17 +305,80 @@ final class SettingsStore: ObservableObject {
 
     func deleteAPIKey(for provider: AIProvider) {
         keychainService.deleteKey(for: provider)
+        if provider == .chatgptWeb {
+            chatGPTWebFetchGeneration += 1
+            isFetchingChatGPTWeb = false
+        }
+    }
+
+    func setChatGPTWebEnabled(_ enabled: Bool) {
+        objectWillChange.send()
+        chatGPTWebFetchGeneration += 1
+        isFetchingChatGPTWeb = false
+        chatGPTWebEnabled = enabled
+        if enabled {
+            chatGPTWebConnectionStatus = .checking
+        } else {
+            chatGPTWebModels = []
+            chatGPTWebFetchError = nil
+            chatGPTWebConnectionStatus = .disabled
+            persistModelCache()
+        }
     }
 
     func makeAIClient() throws -> AIClient {
         guard let model = selectedModel else {
             throw AIClientError.requestFailed("No model selected. Open Settings and pick a model.")
         }
-        return try AIClientFactory.client(for: model, keychainService: keychainService, localAIBaseURL: localAIBaseURL)
+        return try AIClientFactory.client(
+            for: model,
+            keychainService: keychainService,
+            localAIBaseURL: localAIBaseURL,
+            chatGPTWebBaseURL: chatGPTWebBaseURL
+        )
     }
 
     func fetchModels(for provider: AIProvider) async {
         switch provider {
+        case .chatgptWeb:
+            guard chatGPTWebEnabled else {
+                chatGPTWebModels = []
+                chatGPTWebFetchError = nil
+                chatGPTWebConnectionStatus = .disabled
+                persistModelCache()
+                return
+            }
+            isFetchingChatGPTWeb = true
+            chatGPTWebFetchError = nil
+            chatGPTWebConnectionStatus = .checking
+            chatGPTWebFetchGeneration += 1
+            let generation = chatGPTWebFetchGeneration
+            let requestedBaseURL = chatGPTWebBaseURL
+            let requestedAPIKey = getAPIKey(for: .chatgptWeb)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let inspection = await ChatGPTWebService.inspect(
+                baseURL: requestedBaseURL,
+                apiKey: requestedAPIKey
+            )
+            guard generation == chatGPTWebFetchGeneration else { return }
+            let currentAPIKey = getAPIKey(for: .chatgptWeb)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard chatGPTWebEnabled,
+                  requestedBaseURL == chatGPTWebBaseURL,
+                  requestedAPIKey == currentAPIKey
+            else {
+                isFetchingChatGPTWeb = false
+                return
+            }
+            chatGPTWebConnectionStatus = inspection.status
+            chatGPTWebModels = inspection.models
+            if case .connected = inspection.status {
+                ensureDefaultSelection()
+            } else if case .unavailable(let message) = inspection.status {
+                chatGPTWebFetchError = message
+            }
+            isFetchingChatGPTWeb = false
+
         case .local:
             isFetchingLocal = true
             localFetchError = nil
@@ -312,6 +397,8 @@ final class SettingsStore: ObservableObject {
             guard let apiKey = getAPIKey(for: provider), !apiKey.isEmpty else { return }
 
             switch provider {
+            case .chatgptWeb:
+                break // handled above
             case .anthropic:
                 isFetchingAnthropic = true
                 anthropicFetchError = nil
@@ -384,7 +471,11 @@ final class SettingsStore: ObservableObject {
 
         await withTaskGroup(of: Void.self) { group in
             for provider in AIProvider.allCases {
-                if provider == .local {
+                if provider == .chatgptWeb {
+                    if chatGPTWebEnabled {
+                        group.addTask { await self.fetchModels(for: .chatgptWeb) }
+                    }
+                } else if provider == .local {
                     // The Local AI key is optional — attempt if a URL is set.
                     if !localAIBaseURL.isEmpty {
                         group.addTask { await self.fetchModels(for: .local) }
@@ -443,11 +534,13 @@ final class SettingsStore: ObservableObject {
 
     /// True when at least one configured provider's last fetch failed.
     private var hasFetchFailures: Bool {
+        if chatGPTWebEnabled, chatGPTWebFetchError != nil { return true }
         if !localAIBaseURL.isEmpty, localFetchError != nil { return true }
-        for provider in AIProvider.allCases where provider != .local {
+        for provider in AIProvider.allCases where provider != .local && provider != .chatgptWeb {
             guard let key = getAPIKey(for: provider), !key.isEmpty else { continue }
             let error: String?
             switch provider {
+            case .chatgptWeb: error = nil
             case .anthropic: error = anthropicFetchError
             case .openai: error = openaiFetchError
             case .gemini: error = geminiFetchError

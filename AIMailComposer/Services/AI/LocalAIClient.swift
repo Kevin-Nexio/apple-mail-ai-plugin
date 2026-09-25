@@ -3,22 +3,39 @@ import Foundation
 /// Client for local or remote OpenAI-compatible servers, including LM Studio,
 /// Ollama, and vLLM. The base URL is configurable and the API key is optional.
 final class LocalAIClient: AIClient {
-    let provider = AIProvider.local
+    let provider: AIProvider
     private let baseURL: String
     private let model: String
     private let apiKey: String?
 
-    init(baseURL: String, model: String, apiKey: String? = nil) {
+    init(
+        baseURL: String,
+        model: String,
+        apiKey: String? = nil,
+        provider: AIProvider = .local
+    ) {
         self.baseURL = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         self.model = model
         self.apiKey = apiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.provider = provider
     }
 
     func stream(systemPrompt: String, userMessage: String, attachments: [AIAttachment]) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    guard let url = URL(string: "\(self.baseURL)/v1/chat/completions") else {
+                    if self.provider == .chatgptWeb, !attachments.isEmpty {
+                        throw AIClientError.requestFailed(
+                            "ChatGPT Web does not support screenshots yet. Choose another provider for screenshot-based chats."
+                        )
+                    }
+                    let requestBaseURL: String
+                    if self.provider == .chatgptWeb {
+                        requestBaseURL = try ChatGPTWebService.validatedBaseURL(self.baseURL).absoluteString
+                    } else {
+                        requestBaseURL = self.baseURL
+                    }
+                    guard let url = URL(string: "\(requestBaseURL)/v1/chat/completions") else {
                         throw AIClientError.requestFailed("Invalid Local AI base URL: \(self.baseURL)")
                     }
                     var request = URLRequest(url: url)
@@ -28,7 +45,7 @@ final class LocalAIClient: AIClient {
                         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
                     }
 
-                    let body: [String: Any] = [
+                    var body: [String: Any] = [
                         "model": self.model,
                         "stream": true,
                         "messages": [
@@ -36,9 +53,19 @@ final class LocalAIClient: AIClient {
                             ["role": "user", "content": OpenAICompatibleStream.userContent(text: userMessage, attachments: attachments)],
                         ],
                     ]
+                    // Browser-backed ChatGPT relays otherwise continue the
+                    // previous web conversation. Each Mail generation must
+                    // start clean so unrelated email content cannot leak
+                    // between replies.
+                    if self.provider == .chatgptWeb {
+                        body["new_session"] = true
+                    }
                     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let session = self.provider == .chatgptWeb
+                        ? ChatGPTWebURLSession.shared
+                        : URLSession.shared
+                    let (bytes, response) = try await session.bytes(for: request)
 
                     guard let http = response as? HTTPURLResponse else {
                         throw AIClientError.requestFailed("No HTTP response")

@@ -24,14 +24,15 @@ The **Apple Mail AI Plugin** lives in your menu bar and connects directly to App
 
 Switch it on for **Discord**, **WhatsApp**, or any other app and the same shortcut works there too: the app takes a screenshot of the chat window, sends it to the model as the conversation context, and puts the finished message into the chat box for you to review and send.
 
-**Bring your own API key.** No accounts, no subscriptions, no middleman. Your key is stored in macOS Keychain and calls go directly to the provider.
+Use your **ChatGPT subscription through an experimental local browser relay**, bring your own API key, or connect a compatible local server. Provider keys are stored in macOS Keychain and calls go directly to the selected service.
 
 ## Features
 
 - **Menu bar app** — stays out of your way until you need it
 - **Works with Apple Mail** — reads your email thread, recipients, subject, and current draft
 - **Works in Discord, WhatsApp, and any app you add** — opt-in per app: screenshots the chat window as context and inserts the message into the chat box, never sending it for you
-- **Multiple AI providers** — Anthropic (Claude), OpenAI (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
+- **ChatGPT Web (experimental)** — use a local community browser relay as a separate provider, with its own connection light
+- **Multiple AI providers** — Anthropic (Claude), OpenAI API (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
 - **Local and custom servers** — connect to local or remote OpenAI-compatible servers, with an optional API key
 - **Streaming responses** — see the reply as it's being written
 - **Language matching** — automatically replies in the same language as the conversation
@@ -50,7 +51,21 @@ Grab the latest `.dmg` from the [Webpage](https://jpwahle.github.io/apple-mail-a
 
 ## Get Your API Key
 
-The Apple Mail AI Plugin calls AI providers directly. Add a provider API key or connect to a local or custom server below:
+You do not need an API key to use the experimental ChatGPT Web relay. For other providers, add a provider API key or connect to a local or custom server below.
+
+### ChatGPT Web Subscription (Experimental)
+
+This mode connects to the community project [chatgpt-web-provider](https://github.com/guberm/chatgpt-web-provider). The relay controls a dedicated Chromium profile logged in to ChatGPT and exposes an OpenAI-compatible API on your Mac. It is separate from the Codex provider and is intended to use the regular ChatGPT web allowance reported by that project.
+
+1. Install and configure `chatgpt-web-provider` by following its [browser backend setup](https://github.com/guberm/chatgpt-web-provider#browser-backend-setup)
+2. Keep the relay bound to `127.0.0.1`, start it on the default port `8791`, and use a long local access token
+3. Open **Settings → Models → API Keys** in Apple Mail AI Plugin
+4. Enable **ChatGPT Web (Experimental)**, paste the same relay token, and check that its status light turns green
+5. Select a model under **ChatGPT Web (Experimental)** in the model picker
+
+The plugin only accepts a loopback relay URL (`localhost`, `127.0.0.1`, or `::1`). The relay token is stored in macOS Keychain. Every generated email starts a fresh web conversation so context from an earlier email is not intentionally reused.
+
+This is unofficial browser automation. ChatGPT UI or Cloudflare changes can break it, and automated use may trigger warnings or account restrictions. Use a dedicated browser profile, keep the relay local, and do not use this mode if that risk is unacceptable. The plugin never reads ChatGPT cookies or account tokens; those remain inside the relay's browser profile.
 
 ### Anthropic (Claude)
 
@@ -167,6 +182,7 @@ make notarize \
 
 ## Privacy
 
+- Experimental ChatGPT Web requests are sent to a loopback-only community relay, which controls its own isolated ChatGPT browser profile
 - API keys are stored in macOS Keychain — never written to disk as plain text
 - Email content is sent directly to your chosen AI provider and nowhere else
 - No analytics, no telemetry, no data collection

@@ -7,6 +7,8 @@ struct APIKeySettingsView: View {
     @State private var geminiKey: String = ""
     @State private var openrouterKey: String = ""
     @State private var trustedtokensKey: String = ""
+    @State private var chatGPTWebKey: String = ""
+    @State private var chatGPTWebBaseURL: String = ""
     @State private var localKey: String = ""
     @State private var localBaseURL: String = ""
     @State private var statusMessage: String = ""
@@ -16,6 +18,7 @@ struct APIKeySettingsView: View {
 
     var body: some View {
         Form {
+            chatGPTWebSection
             keySection
             modelSections
         }
@@ -26,6 +29,8 @@ struct APIKeySettingsView: View {
             geminiKey = settingsStore.getAPIKey(for: .gemini) ?? ""
             openrouterKey = settingsStore.getAPIKey(for: .openrouter) ?? ""
             trustedtokensKey = settingsStore.getAPIKey(for: .trustedtokens) ?? ""
+            chatGPTWebKey = settingsStore.getAPIKey(for: .chatgptWeb) ?? ""
+            chatGPTWebBaseURL = settingsStore.chatGPTWebBaseURL
             localKey = settingsStore.getAPIKey(for: .local) ?? ""
             localBaseURL = settingsStore.localAIBaseURL
         }
@@ -34,8 +39,109 @@ struct APIKeySettingsView: View {
         .onChange(of: geminiKey) { _, _ in scheduleAutoSave() }
         .onChange(of: openrouterKey) { _, _ in scheduleAutoSave() }
         .onChange(of: trustedtokensKey) { _, _ in scheduleAutoSave() }
+        .onChange(of: chatGPTWebKey) { _, _ in scheduleAutoSave() }
+        .onChange(of: chatGPTWebBaseURL) { _, _ in scheduleAutoSave() }
         .onChange(of: localKey) { _, _ in scheduleAutoSave() }
         .onChange(of: localBaseURL) { _, _ in scheduleAutoSave() }
+        .task {
+            if settingsStore.chatGPTWebEnabled {
+                await settingsStore.fetchModels(for: .chatgptWeb)
+            }
+        }
+    }
+
+    // MARK: - ChatGPT Web subscription
+
+    private var chatGPTWebSection: some View {
+        Section {
+            Toggle("Enable ChatGPT Web", isOn: Binding(
+                get: { settingsStore.chatGPTWebEnabled },
+                set: { enabled in
+                    settingsStore.setChatGPTWebEnabled(enabled)
+                    if enabled {
+                        saveKeys()
+                    }
+                }
+            ))
+            .toggleStyle(.switch)
+
+            if settingsStore.chatGPTWebEnabled {
+                LabeledContent("Connection") {
+                    HStack(spacing: 7) {
+                        Circle()
+                            .fill(chatGPTWebStatusColor)
+                            .frame(width: 9, height: 9)
+                        Text(chatGPTWebStatusText)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                keyRow(
+                    "Relay URL",
+                    subtitle: "Loopback only",
+                    placeholder: "http://127.0.0.1:8791",
+                    text: $chatGPTWebBaseURL
+                )
+                keyRow(
+                    "Relay token",
+                    subtitle: "Stored in macOS Keychain",
+                    placeholder: "Local relay access token",
+                    text: $chatGPTWebKey
+                )
+
+                HStack {
+                    Button {
+                        saveKeys()
+                    } label: {
+                        HStack(spacing: 7) {
+                            if settingsStore.isFetchingChatGPTWeb {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            Text("Check Again")
+                        }
+                    }
+                    .disabled(settingsStore.isFetchingChatGPTWeb)
+
+                    Spacer()
+                    Link(
+                        "Setup guide",
+                        destination: URL(string: "https://github.com/guberm/chatgpt-web-provider#browser-backend-setup")!
+                    )
+                }
+            }
+        } header: {
+            Text("ChatGPT Web (Experimental)")
+        } footer: {
+            Text("Uses a separate community relay and an isolated browser profile, so it targets your regular ChatGPT web allowance instead of Codex. The relay must run locally and may break when ChatGPT changes or trigger account restrictions. This app never reads your ChatGPT cookies or tokens.")
+        }
+    }
+
+    private var chatGPTWebStatusText: String {
+        switch settingsStore.chatGPTWebConnectionStatus {
+        case .disabled:
+            return "Disabled"
+        case .checking:
+            return "Checking local relay…"
+        case .connected:
+            return "Connected through browser relay"
+        case .loginRequired:
+            return "Open the relay browser and sign in"
+        case .mockBackend:
+            return "Relay is running in mock mode"
+        case .unavailable(let message):
+            return message
+        }
+    }
+
+    private var chatGPTWebStatusColor: Color {
+        switch settingsStore.chatGPTWebConnectionStatus {
+        case .connected: return .green
+        case .checking, .disabled: return .secondary
+        case .loginRequired, .mockBackend: return .orange
+        case .unavailable: return .red
+        }
     }
 
     // MARK: - API Keys
@@ -124,6 +230,8 @@ struct APIKeySettingsView: View {
             || trimmed(geminiKey) != (settingsStore.getAPIKey(for: .gemini) ?? "")
             || trimmed(openrouterKey) != (settingsStore.getAPIKey(for: .openrouter) ?? "")
             || trimmed(trustedtokensKey) != (settingsStore.getAPIKey(for: .trustedtokens) ?? "")
+            || trimmed(chatGPTWebKey) != (settingsStore.getAPIKey(for: .chatgptWeb) ?? "")
+            || trimmed(chatGPTWebBaseURL) != settingsStore.chatGPTWebBaseURL
             || trimmed(localKey) != (settingsStore.getAPIKey(for: .local) ?? "")
             || trimmed(localBaseURL) != settingsStore.localAIBaseURL
         guard changed else { return }
@@ -133,7 +241,8 @@ struct APIKeySettingsView: View {
     // MARK: - Model Selection
 
     private var isFetching: Bool {
-        settingsStore.isFetchingAnthropic
+        settingsStore.isFetchingChatGPTWeb
+            || settingsStore.isFetchingAnthropic
             || settingsStore.isFetchingOpenAI
             || settingsStore.isFetchingGemini
             || settingsStore.isFetchingOpenRouter
@@ -209,7 +318,7 @@ struct APIKeySettingsView: View {
             Text("No models available")
                 .font(.subheadline)
                 .fontWeight(.medium)
-            Text("Enter a provider API key or a Local AI URL above to load models.")
+            Text("Connect the experimental ChatGPT Web relay, enter a provider API key, or add a Local AI URL above to load models.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -258,6 +367,9 @@ struct APIKeySettingsView: View {
             if let err = settingsStore.anthropicFetchError {
                 Text("Anthropic: \(err)").foregroundStyle(.red)
             }
+            if let err = settingsStore.chatGPTWebFetchError {
+                Text("ChatGPT Web: \(err)").foregroundStyle(.red)
+            }
             if let err = settingsStore.openaiFetchError {
                 Text("OpenAI: \(err)").foregroundStyle(.red)
             }
@@ -284,6 +396,8 @@ struct APIKeySettingsView: View {
         let trimmedGemini = geminiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedOpenRouter = openrouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTrustedTokens = trustedtokensKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedChatGPTWebKey = chatGPTWebKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedChatGPTWebURL = chatGPTWebBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLocalKey = localKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLocalURL = localBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         anthropicKey = trimmedAnthropic
@@ -291,6 +405,8 @@ struct APIKeySettingsView: View {
         geminiKey = trimmedGemini
         openrouterKey = trimmedOpenRouter
         trustedtokensKey = trimmedTrustedTokens
+        chatGPTWebKey = trimmedChatGPTWebKey
+        chatGPTWebBaseURL = trimmedChatGPTWebURL
         localKey = trimmedLocalKey
         localBaseURL = trimmedLocalURL
 
@@ -300,7 +416,19 @@ struct APIKeySettingsView: View {
             try applyKey(trimmedGemini, for: .gemini)
             try applyKey(trimmedOpenRouter, for: .openrouter)
             try applyKey(trimmedTrustedTokens, for: .trustedtokens)
+            try applyKey(trimmedChatGPTWebKey, for: .chatgptWeb)
             try applyKey(trimmedLocalKey, for: .local)
+
+            var sanitizedChatGPTWebURL = trimmedChatGPTWebURL
+            if !sanitizedChatGPTWebURL.lowercased().hasPrefix("http://")
+                && !sanitizedChatGPTWebURL.lowercased().hasPrefix("https://") {
+                sanitizedChatGPTWebURL = "http://" + sanitizedChatGPTWebURL
+            }
+            while sanitizedChatGPTWebURL.hasSuffix("/") {
+                sanitizedChatGPTWebURL.removeLast()
+            }
+            settingsStore.chatGPTWebBaseURL = sanitizedChatGPTWebURL
+            chatGPTWebBaseURL = sanitizedChatGPTWebURL
 
             if trimmedLocalURL.isEmpty {
                 settingsStore.localAIBaseURL = ""
@@ -327,6 +455,7 @@ struct APIKeySettingsView: View {
                     settingsStore.geminiFetchError,
                     settingsStore.openrouterFetchError,
                     settingsStore.trustedtokensFetchError,
+                    settingsStore.chatGPTWebFetchError,
                     settingsStore.localFetchError,
                 ].compactMap { $0 }
                 if errors.isEmpty {

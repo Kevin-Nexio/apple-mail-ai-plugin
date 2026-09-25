@@ -99,7 +99,12 @@ enum ModelFetcher {
         }
     }
 
-    static func fetchLocalAIModels(baseURL: String, apiKey: String? = nil) async throws -> [AIModel] {
+    static func fetchLocalAIModels(
+        baseURL: String,
+        apiKey: String? = nil,
+        provider: AIProvider = .local,
+        urlSession: URLSession = .shared
+    ) async throws -> [AIModel] {
         let base = baseURL.hasSuffix("/") ? String(baseURL.dropLast()) : baseURL
         guard let url = URL(string: "\(base)/v1/models") else {
             throw AIClientError.requestFailed("Invalid Local AI base URL: \(baseURL)")
@@ -109,7 +114,7 @@ enum ModelFetcher {
             request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await urlSession.data(for: request)
 
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let body = String(data: data, encoding: .utf8) ?? ""
@@ -124,9 +129,9 @@ enum ModelFetcher {
 
         return modelsArray.compactMap { obj -> AIModel? in
             guard let id = obj["id"] as? String else { return nil }
-            let displayName = (obj["name"] as? String) ?? id
+            let displayName = (obj["display_name"] as? String) ?? (obj["name"] as? String) ?? id
             let created = (obj["created"] as? Double) ?? (obj["created"] as? Int).map(Double.init)
-            return AIModel(id: id, displayName: displayName, provider: .local, createdAt: created)
+            return AIModel(id: id, displayName: displayName, provider: provider, createdAt: created)
         }
     }
 

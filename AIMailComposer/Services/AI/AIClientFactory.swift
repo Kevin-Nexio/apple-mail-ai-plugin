@@ -4,9 +4,17 @@ enum AIClientFactory {
     static func client(
         for model: AIModel,
         keychainService: KeychainService,
-        localAIBaseURL: String = "http://localhost:1234"
+        localAIBaseURL: String = "http://localhost:1234",
+        chatGPTWebBaseURL: String = "http://127.0.0.1:8791"
     ) throws -> AIClient {
         switch model.provider {
+        case .chatgptWeb:
+            return LocalAIClient(
+                baseURL: chatGPTWebBaseURL,
+                model: model.id,
+                apiKey: keychainService.getKey(for: .chatgptWeb),
+                provider: .chatgptWeb
+            )
         case .anthropic:
             guard let key = keychainService.getKey(for: .anthropic), !key.isEmpty else {
                 throw AIClientError.missingAPIKey(.anthropic)
