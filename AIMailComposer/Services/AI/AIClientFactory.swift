@@ -7,6 +7,8 @@ enum AIClientFactory {
         localAIBaseURL: String = "http://localhost:1234"
     ) throws -> AIClient {
         switch model.provider {
+        case .codex:
+            return CodexAppServerClient(model: model.id)
         case .anthropic:
             guard let key = keychainService.getKey(for: .anthropic), !key.isEmpty else {
                 throw AIClientError.missingAPIKey(.anthropic)

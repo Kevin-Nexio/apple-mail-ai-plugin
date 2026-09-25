@@ -28,6 +28,11 @@ extension AIModel {
         var score = 0
 
         switch provider {
+        case .codex:
+            if id.contains("astra") { score += 35 }
+            else if id.contains("sol") { score += 30 }
+            else if id.contains("luna") { score += 20 }
+
         case .anthropic:
             if id.contains("opus") { score += 30 }
             else if id.contains("sonnet") { score += 22 }

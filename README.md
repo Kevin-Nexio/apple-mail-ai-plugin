@@ -24,14 +24,15 @@ The **Apple Mail AI Plugin** lives in your menu bar and connects directly to App
 
 Switch it on for **Discord**, **WhatsApp**, or any other app and the same shortcut works there too: the app takes a screenshot of the chat window, sends it to the model as the conversation context, and puts the finished message into the chat box for you to review and send.
 
-**Bring your own API key.** No accounts, no subscriptions, no middleman. Your key is stored in macOS Keychain and calls go directly to the provider.
+Use your **ChatGPT subscription through Codex**, bring your own API key, or connect a compatible local server. Provider keys are stored in macOS Keychain and calls go directly to the selected service.
 
 ## Features
 
 - **Menu bar app** — stays out of your way until you need it
 - **Works with Apple Mail** — reads your email thread, recipients, subject, and current draft
 - **Works in Discord, WhatsApp, and any app you add** — opt-in per app: screenshots the chat window as context and inserts the message into the chat box, never sending it for you
-- **Multiple AI providers** — Anthropic (Claude), OpenAI (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
+- **ChatGPT subscription** — use the ChatGPT account already connected to Codex, without adding an OpenAI API key
+- **Multiple AI providers** — Anthropic (Claude), OpenAI API (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
 - **Local and custom servers** — connect to local or remote OpenAI-compatible servers, with an optional API key
 - **Streaming responses** — see the reply as it's being written
 - **Language matching** — automatically replies in the same language as the conversation
@@ -50,7 +51,16 @@ Grab the latest `.dmg` from the [Webpage](https://jpwahle.github.io/apple-mail-a
 
 ## Get Your API Key
 
-The Apple Mail AI Plugin calls AI providers directly. Add a provider API key or connect to a local or custom server below:
+You do not need an API key to use a ChatGPT subscription. For other providers, add a provider API key or connect to a local or custom server below.
+
+### ChatGPT Subscription via Codex
+
+1. Install the [ChatGPT macOS app](https://openai.com/chatgpt/desktop/) or the Codex CLI
+2. Sign in to Codex with your ChatGPT account. In the CLI, run `codex login` and choose ChatGPT
+3. Open **Settings → Models → API Keys** in Apple Mail AI Plugin
+4. Check that **ChatGPT Subscription** has a green status light, then select **ChatGPT (via Codex)** in the model picker
+
+The plugin starts Codex locally and uses its app-server protocol. Codex keeps control of the ChatGPT credentials; the plugin never reads or stores an access token. It also rejects Codex sessions authenticated with an API key so this mode cannot silently create API charges. The app-server protocol is currently experimental, so a future Codex update may require a plugin update.
 
 ### Anthropic (Claude)
 
@@ -167,6 +177,7 @@ make notarize \
 
 ## Privacy
 
+- ChatGPT subscription requests, including enabled chat screenshots, are sent to OpenAI through the local Codex process; Codex retains control of the account credentials
 - API keys are stored in macOS Keychain — never written to disk as plain text
 - Email content is sent directly to your chosen AI provider and nowhere else
 - No analytics, no telemetry, no data collection
