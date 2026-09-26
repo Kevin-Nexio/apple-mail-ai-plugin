@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The missing AI plugin for Apple Mail — AI replies in Mail, Discord &amp; WhatsApp</title>
-  <meta name="description" content="Apple Mail AI Plugin is a free, open-source macOS menu bar app that writes email replies directly inside Apple Mail, and chat messages in Discord, WhatsApp, and any app you switch on. Claude Opus 5, GPT-5.6, Gemini, or a local model via Ollama and LM Studio. Bring your own API key. No accounts, no subscriptions.">
+  <meta name="description" content="Apple Mail AI Plugin is a free, open-source macOS menu bar app that writes email replies directly inside Apple Mail, and chat messages in Discord, WhatsApp, and any app you switch on. Claude, GPT, Gemini, or a local model via Ollama and LM Studio. Bring your own API key. No accounts, no subscriptions.">
   <meta name="keywords" content="Apple Mail AI Plugin, Apple Mail AI, AI email reply, macOS Mail AI, Apple Mail ChatGPT, Apple Mail Claude, Apple Mail Gemini, AI Mail plugin, Mail.app AI, AI email assistant macOS, local AI email, Ollama Apple Mail, LM Studio Apple Mail, open source Apple Mail AI, Discord AI reply mac, WhatsApp AI message mac, AI chat reply macOS, compose message from screenshot">
   <meta name="author" content="Jan Philip Wahle">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
@@ -513,6 +513,13 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .mviz-check { color: var(--accent); font-size: 14px; font-weight: 700; opacity: 0; transition: opacity 0.25s; }
+    .mviz-foot {
+      margin-top: 4px; padding: 11px 18px 13px;
+      border-top: 1px solid var(--win-line);
+      font-size: 12px; color: var(--dim); display: flex; gap: 8px; align-items: center;
+    }
+    .mviz-foot[hidden] { display: none; }
+    .mviz-foot .dotacc { color: var(--accent); }
     .mviz-row.active .mviz-check { opacity: 1; }
 
     /* Keychain mock */
@@ -1139,17 +1146,17 @@ Best wishes,<span class="chat-caret"></span></div>
           <div class="mviz-list">
             <div class="mviz-row active" data-mviz-row>
               <div class="mviz-dot" style="background:#D97757;"></div>
-              <div class="mviz-body"><div class="mviz-name">Claude</div><div class="mviz-sub">claude-opus-5</div></div>
+              <div class="mviz-body"><div class="mviz-name">Claude</div><div class="mviz-sub" data-model-ids="anthropic/claude-">claude-opus-5.5 · claude-fable-5.1 · claude-opus-5</div></div>
               <div class="mviz-check">✓</div>
             </div>
             <div class="mviz-row" data-mviz-row>
               <div class="mviz-dot" style="background:#10A37F;"></div>
-              <div class="mviz-body"><div class="mviz-name">ChatGPT</div><div class="mviz-sub">gpt-5.6</div></div>
+              <div class="mviz-body"><div class="mviz-name">ChatGPT</div><div class="mviz-sub" data-model-ids="openai/gpt-">gpt-6-luna · gpt-6-sol · gpt-6-astra</div></div>
               <div class="mviz-check">✓</div>
             </div>
             <div class="mviz-row" data-mviz-row>
               <div class="mviz-dot" style="background:#4285F4;"></div>
-              <div class="mviz-body"><div class="mviz-name">Gemini</div><div class="mviz-sub">gemini-3.6-flash</div></div>
+              <div class="mviz-body"><div class="mviz-name">Gemini</div><div class="mviz-sub" data-model-ids="google/gemini-">gemini-3.8-flash · gemini-3.7-flash · gemini-3.6-flash</div></div>
               <div class="mviz-check">✓</div>
             </div>
             <div class="mviz-row" data-mviz-row>
@@ -1163,6 +1170,7 @@ Best wishes,<span class="chat-caret"></span></div>
               <div class="mviz-check">✓</div>
             </div>
           </div>
+          <div class="mviz-foot" data-model-live hidden><span class="dotacc">●</span>Newest releases per provider, live from OpenRouter's public model list.</div>
         </div>
       </div>
     </div>
@@ -1548,6 +1556,51 @@ Best wishes,<span class="chat-caret"></span></div>
         }
       })
       .catch(function () {});
+
+    // ------------------------------------------------------------
+    // Model IDs in the picker mock: newest three text models per provider
+    // family (claude-, gpt-, gemini-) from OpenRouter's public list (no key,
+    // CORS open), so the page never shows last season's models. scripts/refresh_landing_models.py applies
+    // the same rule to the static fallback text once a week.
+    // ------------------------------------------------------------
+    // Whole segments only ("gpt-5-mini" yes, "gemini-3.8-flash" no).
+    var MODEL_SKIP = /(^|[-._])(haiku|mini|nano|lite|guard|image|audio|tts|realtime|embed|embedding|search|transcribe|moderation|codex|thinking|small|oss)([-._]|$)/;
+    var modelSlots = document.querySelectorAll('[data-model-ids]');
+    if (modelSlots.length) {
+      fetch('https://openrouter.ai/api/v1/models')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var models = (data && data.data) || [];
+          var filled = 0;
+          modelSlots.forEach(function (slot) {
+            // e.g. "google/gemini-": the provider and the family the row stands for
+            var prefix = slot.dataset.modelIds;
+            var picks = [];
+            var have = {};
+            models.forEach(function (m) {
+              var id = m && m.id || '';
+              if (id.indexOf(prefix) !== 0 || id.indexOf(':') !== -1) return;
+              var out = (m.architecture && m.architecture.output_modalities) || ['text'];
+              if (out.indexOf('text') === -1) return;
+              var slug = id.slice(id.indexOf('/') + 1);
+              if (MODEL_SKIP.test(slug)) return;
+              picks.push({ slug: slug, created: m.created || 0 });
+              have[slug] = true;
+            });
+            // A "-pro" variant is the same release as its base model.
+            picks = picks.filter(function (p) { return !(/-pro$/.test(p.slug) && have[p.slug.replace(/-pro$/, '')]); });
+            picks.sort(function (a, b) { return (b.created - a.created) || a.slug.localeCompare(b.slug); });
+            if (picks.length) {
+              slot.textContent = picks.slice(0, 3).map(function (p) { return p.slug; }).join(' · ');
+              filled++;
+            }
+          });
+          if (filled === modelSlots.length) {
+            document.querySelectorAll('[data-model-live]').forEach(function (el) { el.hidden = false; });
+          }
+        })
+        .catch(function () {});
+    }
 
     fetch('https://api.github.com/repos/jpwahle/ai-apple-mail')
       .then(function (r) { return r.json(); })

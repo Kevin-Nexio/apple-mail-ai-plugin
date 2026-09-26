@@ -1,0 +1,47 @@
+name: Refresh landing page model IDs
+
+# Keeps the static model IDs in docs/index.html current (the page also
+# fetches the same list live in the browser). Docs-only commits never
+# trigger the release workflow, which ignores docs/**.
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # Mondays, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: refresh-landing-models
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rewrite model IDs from OpenRouter's public list
+        run: python3 scripts/refresh_landing_models.py
+
+      - name: Commit and push if anything changed
+        id: commit
+        run: |
+          if git diff --quiet -- docs/index.html; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: refresh landing page model IDs" -- docs/index.html
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # Commits made with GITHUB_TOKEN don't start other workflows, so ask
+      # Pages for a build explicitly.
+      - name: Request a GitHub Pages build
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds"
