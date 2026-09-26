@@ -844,7 +844,9 @@
 
   <section id="apps" class="section apps">
     <div class="section-head">
-      <span class="eyebrow">New in v0.12 · September 2026</span>
+      <!-- "New in" label: shown by the script only while the feature is under 90 days old
+           and the latest release is still 0.12.x, so it retires itself. -->
+      <span class="eyebrow" data-new-in="0.12" data-shipped="2026-09-22" data-new-label="New in v0.12 · September 2026">Beyond Mail</span>
       <h2>Same shortcut. Any app on your Mac.</h2>
       <p class="section-lede">
         In Mail it reads the thread. Switch on Discord, WhatsApp, or any app you pick,
@@ -1452,6 +1454,22 @@ Best wishes,<span class="chat-caret"></span></div>
     }
 
     // ------------------------------------------------------------
+    // "New in vX.Y" eyebrow: fresh for 90 days after the ship date, and
+    // only while the latest release is still that minor version (see the
+    // release fetch below). Otherwise the neutral static label stays.
+    // ------------------------------------------------------------
+    var newEyebrow = document.querySelector('[data-new-in]');
+    var NEW_FOR_DAYS = 90;
+    var eyebrowDefault = newEyebrow ? newEyebrow.textContent : '';
+    if (newEyebrow) {
+      var shippedAt = Date.parse(newEyebrow.dataset.shipped);
+      var ageDays = (Date.now() - shippedAt) / 86400000;
+      if (!isNaN(ageDays) && ageDays >= 0 && ageDays < NEW_FOR_DAYS) {
+        newEyebrow.textContent = newEyebrow.dataset.newLabel;
+      }
+    }
+
+    // ------------------------------------------------------------
     // Chat apps showcase: tabs, auto-rotate until the reader picks one
     // ------------------------------------------------------------
     var appsTabs = document.querySelectorAll('[data-apps-tab]');
@@ -1513,6 +1531,14 @@ Best wishes,<span class="chat-caret"></span></div>
         var sizeMB = dmg ? (dmg.size / (1024 * 1024)).toFixed(1) + ' MB' : null;
 
         document.querySelectorAll('[data-gh-version]').forEach(function (el) { el.textContent = version; });
+
+        // A newer minor or major release retires the "New in" label.
+        if (newEyebrow) {
+          var minor = version.replace(/^v/, '').split('.').slice(0, 2).join('.');
+          if (minor !== newEyebrow.dataset.newIn) {
+            newEyebrow.textContent = eyebrowDefault;
+          }
+        }
 
         var btn = document.getElementById('download-btn');
         if (btn) {
