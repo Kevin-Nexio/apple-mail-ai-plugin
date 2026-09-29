@@ -22,6 +22,11 @@ enum MailBridgeError: LocalizedError {
 }
 
 final class MailBridge {
+    enum InsertResult: Equatable {
+        case inserted
+        case copiedOnly(String)
+    }
+
     static func executeAppleScript(_ source: String) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -164,15 +169,15 @@ final class MailBridge {
     /// Three passes, mirroring the read path's AppleScript → AX fallback:
     ///   1. Mail scripting API (`content of outgoing message 1`) — works on
     ///      older macOS versions.
-    ///   2. AX write into the compose body — recent macOS versions return an
-    ///      empty `outgoing messages` collection, so pass 1 silently no-ops
-    ///      there (the same breakage `fetchComposerContext` works around).
-    ///   3. Synthetic ⌘V into the body — last resort when the body is
-    ///      focused but rejects the AX text write.
+    ///   2. AX locates the compose body, focuses it, and puts the caret at
+    ///      the start. This handles recent macOS versions where pass 1
+    ///      silently no-ops.
+    ///   3. Synthetic ⌘V inserts through Mail's own editor, followed by a
+    ///      complete read-back check.
     /// The clipboard is populated first so a manual paste works no matter
     /// which pass ran.
     @MainActor
-    static func insertReply(_ text: String) async {
+    static func insertReply(_ text: String) async -> InsertResult {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
@@ -181,7 +186,7 @@ final class MailBridge {
         let scriptResult = (try? await executeAppleScript(MailScripts.insertReply(text))) ?? ""
         if scriptResult.hasPrefix("INSERTED") {
             activateMail()
-            return
+            return .inserted
         }
 
         // Pass 2: AX writer. Activate Mail first so focusing the compose
@@ -192,19 +197,32 @@ final class MailBridge {
         }.value
 
         switch result {
-        case .inserted, .failed:
-            // .failed leaves the reply on the clipboard, the pre-existing
-            // behavior for a missing compose window.
-            return
-        case .bodyFocused:
-            // Pass 3: the body has focus but rejected the AX write — paste
-            // the clipboard into it. The short delay lets Mail finish
-            // activating before the key events arrive.
+        case .failed:
+            if !AXPermissionChecker.isGranted() {
+                return .copiedOnly(
+                    "Mail did not accept the reply because Accessibility is not active for this installed build. "
+                        + "The text is on your clipboard. Re-enable Apple Mail AI Plugin in System Settings, then try again."
+                )
+            }
+            return .copiedOnly(
+                "Mail's compose body could not be reached. The text is on your clipboard; keep this window open and try again."
+            )
+        case .pasteReady:
+            // Pass 3: the body is focused with its caret at the start. Paste
+            // through Mail's editor because direct AX text writes can report
+            // success while truncating the final character.
             guard let mail = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.mail").first else {
-                return
+                return .copiedOnly("Mail is no longer running. The text is on your clipboard.")
             }
             try? await Task.sleep(nanoseconds: 250_000_000)
             AccessibilityWriter.pasteCommandV(pid: mail.processIdentifier)
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            if AccessibilityWriter.composeBodyContains(text) {
+                return .inserted
+            }
+            return .copiedOnly(
+                "Mail focused the draft but did not accept the paste. The text is on your clipboard; press ⌘V in the message body."
+            )
         }
     }
 

@@ -65,7 +65,7 @@ final class ComposerViewModel: ObservableObject {
     }
 
     var insertActionLabel: String {
-        target.usesScreenshot ? "Insert into \(target.displayName)" : "Copy message"
+        target.usesScreenshot ? "Insert into \(target.displayName)" : "Insert into Mail"
     }
 
     private let settingsStore: SettingsStore
@@ -375,8 +375,12 @@ final class ComposerViewModel: ObservableObject {
         guard !generatedReply.isEmpty else { return }
         switch target.flow {
         case .mail:
-            await MailBridge.insertReply(generatedReply)
-            onDismiss()
+            switch await MailBridge.insertReply(generatedReply) {
+            case .inserted:
+                onDismiss()
+            case .copiedOnly(let message):
+                insertionNotice = message
+            }
         case .screenshot:
             let outcome = await ChatBridge.insertMessage(generatedReply, into: target)
             switch outcome {

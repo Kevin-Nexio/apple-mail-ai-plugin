@@ -7,22 +7,14 @@ import AppKit
 /// Counterpart to `AccessibilityReader`: recent macOS versions broke Mail's
 /// `outgoing messages` AppleScript collection, so `set content of outgoing
 /// message 1` silently does nothing even with a compose window open. This
-/// writer locates the compose window's "message body" web area and prepends
-/// the reply there, matching what the AppleScript path does on older systems.
-///
-/// WebKit editors reject writes to `AXValue`; the broadly supported edit
-/// primitive is replacing the selection via `AXSelectedText`, so the writer
-/// collapses the selection to the start of the body and replaces that empty
-/// selection with the reply.
+/// writer locates the compose window's "message body" web area, focuses it,
+/// and places the caret at the start. `MailBridge` then pastes the reply and
+/// verifies the complete text before reporting success.
 enum AccessibilityWriter {
 
     enum WriteResult {
-        /// The reply was written into the draft.
-        case inserted
-        /// The compose body was found and focused, but rejected the AX text
-        /// write — a synthetic paste into the (now focused) body will land
-        /// correctly.
-        case bodyFocused
+        /// The compose body is focused with its caret at the start.
+        case pasteReady
         /// No compose body was found, or AX permission is missing.
         case failed
     }
@@ -31,9 +23,11 @@ enum AccessibilityWriter {
     /// insert action. Mirrors `AccessibilityReader.messagingTimeout`.
     private static let messagingTimeout: Float = 1.5
 
-    /// Prepend `text` (plus a blank line) above the existing content of the
-    /// first compose window's message body.
-    static func insertIntoComposeBody(_ text: String) -> WriteResult {
+    /// Focus the first compose window's message body and put its caret at the
+    /// start. Mail's WebKit editor currently reports successful AXSelectedText
+    /// writes while occasionally dropping the final character, so the actual
+    /// insertion is deliberately left to the verified paste path.
+    static func insertIntoComposeBody(_: String) -> WriteResult {
         guard AXIsProcessTrusted() else { return .failed }
 
         guard let mailApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.mail").first else {
@@ -57,14 +51,14 @@ enum AccessibilityWriter {
             }
             guard let body = findMessageBody(in: window) else { continue }
             AXUIElementPerformAction(window, kAXRaiseAction as CFString)
-            return insert(text, into: body)
+            return prepareForPaste(body)
         }
         return .failed
     }
 
-    /// Post a ⌘V key-down/key-up pair to Mail. Used as a last resort when
-    /// the compose body is focused but rejected the AX text write; the
-    /// caller is responsible for having the reply on the clipboard.
+    /// Post a ⌘V key-down/key-up pair to Mail after the compose body has been
+    /// focused. The caller is responsible for putting the reply on the
+    /// clipboard and verifying the resulting draft.
     static func pasteCommandV(pid: pid_t) {
         let source = CGEventSource(stateID: .combinedSessionState)
         let vKey: CGKeyCode = 9 // kVK_ANSI_V
@@ -76,6 +70,36 @@ enum AccessibilityWriter {
         up.flags = .maskCommand
         down.postToPid(pid)
         up.postToPid(pid)
+    }
+
+    /// Verify that the complete reply is now present in the open compose body.
+    /// Checking only the first line hid truncated pastes such as "Kevin"
+    /// becoming "Kevi".
+    static func composeBodyContains(_ text: String) -> Bool {
+        let probe = normalizedText(text)
+        guard !probe.isEmpty,
+              AXIsProcessTrusted(),
+              let mailApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.mail").first else {
+            return false
+        }
+
+        let app = AXUIElementCreateApplication(mailApp.processIdentifier)
+        var windowsRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &windowsRef)
+        guard let windows = windowsRef as? [AXUIElement] else { return false }
+
+        for window in windows {
+            if let id = axIdentifier(window), id == "Mail.messageViewer.window" { continue }
+            guard let body = findMessageBody(in: window) else { continue }
+            if let value = axValue(body), normalizedText(value).contains(probe) {
+                return true
+            }
+            let descendantText = descendantValues(in: body).joined(separator: "\n")
+            if normalizedText(descendantText).contains(probe) {
+                return true
+            }
+        }
+        return false
     }
 
     // MARK: - Body lookup
@@ -111,36 +135,44 @@ enum AccessibilityWriter {
         return nil
     }
 
+    private static func descendantValues(in element: AXUIElement) -> [String] {
+        var childrenRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef)
+        guard let children = childrenRef as? [AXUIElement], !children.isEmpty else {
+            return axValue(element).map { [$0] } ?? []
+        }
+        return children.flatMap(descendantValues(in:))
+    }
+
+    static func normalizedText(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "\u{00A0}", with: " ")
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+    }
+
     // MARK: - Write
 
-    /// Focus the body, collapse the selection to the very start, and replace
-    /// that empty selection with the reply — i.e. prepend above any quoted
-    /// thread, matching the AppleScript path's
-    /// `newText & return & return & oldContent`.
-    private static func insert(_ text: String, into body: AXUIElement) -> WriteResult {
-        AXUIElementSetAttributeValue(body, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+    /// Focus the body and collapse the selection to the very start so the
+    /// subsequent paste is inserted above the quoted thread.
+    private static func prepareForPaste(_ body: AXUIElement) -> WriteResult {
+        let focusError = AXUIElementSetAttributeValue(
+            body,
+            kAXFocusedAttribute as CFString,
+            kCFBooleanTrue
+        )
+        guard focusError == .success else { return .failed }
 
         var start = CFRange(location: 0, length: 0)
-        if let rangeValue = AXValueCreate(.cfRange, &start) {
-            AXUIElementSetAttributeValue(body, kAXSelectedTextRangeAttribute as CFString, rangeValue)
-        }
-
-        let payload = text + "\n\n"
-        let err = AXUIElementSetAttributeValue(body, kAXSelectedTextAttribute as CFString, payload as CFString)
-        guard err == .success else { return .bodyFocused }
-
-        // WebKit can report success without applying the edit — read back
-        // and check the reply actually landed. A nil value means the element
-        // doesn't expose its text; trust the success code then.
-        if let value = axValue(body) {
-            let probe = text
-                .components(separatedBy: .newlines)
-                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-            if let probe, !value.contains(probe) {
-                return .bodyFocused
-            }
-        }
-        return .inserted
+        guard let rangeValue = AXValueCreate(.cfRange, &start) else { return .failed }
+        let rangeError = AXUIElementSetAttributeValue(
+            body,
+            kAXSelectedTextRangeAttribute as CFString,
+            rangeValue
+        )
+        return rangeError == .success ? .pasteReady : .failed
     }
 
     // MARK: - AX helpers
