@@ -27,6 +27,8 @@ final class ComposerViewModel: ObservableObject {
     @Published var state: State = .loadingContext
     @Published var userThoughts: String = ""
     @Published var generatedReply: String = ""
+    @Published var replyAddressStyle: ReplyAddressStyle = .automatic
+    @Published var replyLanguage: ReplyLanguage = .automatic
     /// True while bytes are still arriving from the model. Used by the view
     /// to show a caret animation and to gate the "Copy message" action.
     @Published var isStreaming: Bool = false
@@ -285,7 +287,9 @@ final class ComposerViewModel: ObservableObject {
         let prompts = SystemPrompt.compose(
             context: context!,
             userThoughts: thoughts,
-            customInstructions: settingsStore.customWritingInstructions
+            customInstructions: settingsStore.customWritingInstructions,
+            addressStyle: replyAddressStyle,
+            replyLanguage: replyLanguage
         )
         return Request(system: prompts.system, user: prompts.user, attachments: [])
     }

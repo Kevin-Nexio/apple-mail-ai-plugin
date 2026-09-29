@@ -54,6 +54,9 @@ struct ComposerView: View {
 
             ComposerInputBar(
                 userThoughts: $viewModel.userThoughts,
+                replyAddressStyle: $viewModel.replyAddressStyle,
+                replyLanguage: $viewModel.replyLanguage,
+                showsReplyOptions: viewModel.target.flow == .mail,
                 isEditable: isInputEditable,
                 isGenerating: viewModel.isBusy,
                 canSend: viewModel.canSend,
@@ -956,6 +959,9 @@ private struct ChatContextCard: View {
 
 private struct ComposerInputBar: View {
     @Binding var userThoughts: String
+    @Binding var replyAddressStyle: ReplyAddressStyle
+    @Binding var replyLanguage: ReplyLanguage
+    let showsReplyOptions: Bool
     let isEditable: Bool
     let isGenerating: Bool
     let canSend: Bool
@@ -1003,6 +1009,13 @@ private struct ComposerInputBar: View {
 
             HStack(spacing: 8) {
                 ModelPicker(settingsStore: settingsStore)
+                if showsReplyOptions {
+                    ReplyOptionsPicker(
+                        addressStyle: $replyAddressStyle,
+                        language: $replyLanguage
+                    )
+                        .disabled(!isEditable || isGenerating)
+                }
                 Spacer()
                 if claimsReturnShortcut {
                     SendButton(
@@ -1050,6 +1063,93 @@ private struct ComposerInputBar: View {
                 editorFocused = true
             }
         }
+    }
+}
+
+private struct ReplyOptionsPicker: View {
+    @Binding var addressStyle: ReplyAddressStyle
+    @Binding var language: ReplyLanguage
+
+    var body: some View {
+        Menu {
+            Section("Language") {
+                ForEach(ReplyLanguage.allCases) { option in
+                    Button {
+                        language = option
+                    } label: {
+                        if language == option {
+                            Label(option.menuLabel, systemImage: "checkmark")
+                        } else {
+                            Text(option.menuLabel)
+                        }
+                    }
+                }
+            }
+            Section("Address") {
+                ForEach(ReplyAddressStyle.allCases) { option in
+                    Button {
+                        addressStyle = option
+                    } label: {
+                        if addressStyle == option {
+                            Label(option.menuLabel, systemImage: "checkmark")
+                        } else {
+                            Text(option.menuLabel)
+                        }
+                    }
+                }
+            }
+        } label: {
+            ReplyOptionChip(
+                icon: "character.bubble",
+                text: compactLabel,
+                accessibilityLabel: "Response style",
+                accessibilityValue: "Language \(language.menuLabel), address \(addressStyle.menuLabel)"
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("Choose the reply language and whether to use tu or vous")
+    }
+
+    private var compactLabel: String {
+        if language == .automatic && addressStyle == .automatic {
+            return "Auto"
+        }
+        return "\(language.shortLabel) · \(addressStyle.shortLabel)"
+    }
+}
+
+private struct ReplyOptionChip: View {
+    let icon: String
+    let text: String
+    let accessibilityLabel: String
+    let accessibilityValue: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.primary)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 7, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.primary.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
     }
 }
 

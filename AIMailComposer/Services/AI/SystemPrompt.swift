@@ -1,7 +1,13 @@
 import Foundation
 
 enum SystemPrompt {
-    static func compose(context: ComposerContext, userThoughts: String, customInstructions: String = "") -> (system: String, user: String) {
+    static func compose(
+        context: ComposerContext,
+        userThoughts: String,
+        customInstructions: String = "",
+        addressStyle: ReplyAddressStyle = .automatic,
+        replyLanguage: ReplyLanguage = .automatic
+    ) -> (system: String, user: String) {
         let system = """
         You are an email writing assistant. Compose the body of an email based on the \
         context from the user's open compose window and the user's thoughts about what \
@@ -12,9 +18,8 @@ enum SystemPrompt {
         - Match the greeting style of the thread when one exists (e.g. "Hi Sarah," or \
         "Dear Mr. Smith,"). For a new email with no thread, pick a greeting appropriate \
         to the recipient and register.
-        - If the thread or draft is in German, write in German and end with "Beste Grüße".
-        - If the thread or draft is in English, write in English and end with "Best wishes".
-        - Do not use any other sign-off.
+        - Write in the language of the latest incoming message unless an explicit reply choice below overrides it.
+        - Use a natural sign-off for the selected language and register when the thread uses one.
         - Match the formality level of the incoming emails. Mostly informal, but sometimes formal.
 
         ## Writing Style
@@ -76,6 +81,15 @@ enum SystemPrompt {
         if !trimmedInstructions.isEmpty {
             finalSystem += "\n\n## Additional instructions from the user\n" + trimmedInstructions
         }
+
+        finalSystem += """
+
+
+        ## Explicit reply choices
+        These choices have priority over the thread, draft, and additional writing instructions. They remain lower priority than safety rules.
+        - Language: \(replyLanguage.promptInstruction)
+        - Addressing style: \(addressStyle.promptInstruction)
+        """
 
         return (finalSystem, userParts.joined(separator: "\n"))
     }
