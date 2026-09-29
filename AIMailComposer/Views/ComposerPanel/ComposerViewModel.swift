@@ -334,6 +334,7 @@ final class ComposerViewModel: ObservableObject {
             // got nothing back at all, otherwise the partial is still useful.
             if generatedReply.isEmpty {
                 var message = error.localizedDescription
+                message = Self.userFacingError(message)
                 if lastRequestHadAttachments, Self.looksLikeImageRejection(message) {
                     message += " The selected model may not accept images. Pick a vision-capable model in Settings."
                 }
@@ -353,6 +354,15 @@ final class ComposerViewModel: ObservableObject {
             || lower.contains("image")
             || lower.contains("vision")
             || lower.contains("multimodal")
+    }
+
+    nonisolated static func userFacingError(_ message: String) -> String {
+        let lower = message.lowercased()
+        if lower.contains("locator.fill") && lower.contains("timeout") {
+            return "ChatGPT Web did not accept the prompt in time. Check that the relay browser is still connected, then try again."
+        }
+        guard message.count > 700 else { return message }
+        return String(message.prefix(700)) + "…"
     }
 
     // MARK: - Output

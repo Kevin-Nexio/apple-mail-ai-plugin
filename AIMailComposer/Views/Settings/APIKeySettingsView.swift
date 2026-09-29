@@ -84,7 +84,7 @@ struct APIKeySettingsView: View {
                 )
                 keyRow(
                     "Relay token",
-                    subtitle: "Stored in macOS Keychain",
+                    subtitle: "Stored in the relay's protected local config",
                     placeholder: "Local relay access token",
                     text: $chatGPTWebKey
                 )
@@ -181,7 +181,7 @@ struct APIKeySettingsView: View {
                     Text(statusMessage)
                         .foregroundStyle(isError ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
                 }
-                Text("Keys are saved automatically to the macOS Keychain and never leave this Mac except to call the provider.")
+                Text("Provider API keys are saved to the macOS Keychain. The loopback-only ChatGPT Web relay token stays in the relay's protected local config file.")
             }
         }
     }

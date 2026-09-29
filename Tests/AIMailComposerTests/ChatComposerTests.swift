@@ -242,6 +242,21 @@ final class ChatComposerTests: XCTestCase {
         XCTAssertFalse(ComposerViewModel.looksLikeImageRejection("API request failed: HTTP 401: Invalid API key"))
     }
 
+    func testChatGPTWebLocatorTimeoutGetsAReadableMessage() {
+        let raw = "API request failed: HTTP 500: Locator.fill: Timeout 30000ms exceeded while waiting for #prompt-textarea"
+        XCTAssertEqual(
+            ComposerViewModel.userFacingError(raw),
+            "ChatGPT Web did not accept the prompt in time. Check that the relay browser is still connected, then try again."
+        )
+    }
+
+    func testVeryLongProviderErrorsAreTruncated() {
+        let raw = String(repeating: "x", count: 900)
+        let result = ComposerViewModel.userFacingError(raw)
+        XCTAssertEqual(result.count, 701)
+        XCTAssertTrue(result.hasSuffix("…"))
+    }
+
     // MARK: - Helpers
 
     private func makeChatContext(target: ComposerTarget, withScreenshot: Bool) -> ChatContext {
