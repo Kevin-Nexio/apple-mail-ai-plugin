@@ -137,6 +137,8 @@ enum ChatGPTWebService {
 /// A relay bound to loopback must not be able to redirect email content or
 /// its local bearer token to another host.
 enum ChatGPTWebURLSession {
+    private static let requestTimeout: TimeInterval = 360
+
     /// Test targets may inject a URLProtocol without changing production
     /// networking. Nil in the shipped app.
     static var protocolClassesForTesting: [AnyClass]?
@@ -145,6 +147,8 @@ enum ChatGPTWebURLSession {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.urlCache = nil
+        configuration.timeoutIntervalForRequest = requestTimeout
+        configuration.timeoutIntervalForResource = requestTimeout
         if let protocolClassesForTesting {
             configuration.protocolClasses = protocolClassesForTesting
         }

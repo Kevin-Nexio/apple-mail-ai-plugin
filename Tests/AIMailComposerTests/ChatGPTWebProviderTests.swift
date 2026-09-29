@@ -37,6 +37,13 @@ final class ChatGPTWebProviderTests: XCTestCase {
         })
     }
 
+    func testBrowserRelayAllowsLongInteractiveResponses() {
+        let session = ChatGPTWebURLSession.shared
+
+        XCTAssertEqual(session.configuration.timeoutIntervalForRequest, 360)
+        XCTAssertEqual(session.configuration.timeoutIntervalForResource, 360)
+    }
+
     func testBrowserRelayGenerationAlwaysStartsFreshConversation() async throws {
         let client = LocalAIClient(
             baseURL: "http://127.0.0.1:8791",
