@@ -30,6 +30,7 @@ Switch it on for **Discord**, **WhatsApp**, or any other app and the same shortc
 
 - **Menu bar app** — stays out of your way until you need it
 - **Works with Apple Mail** — reads your email thread, recipients, subject, and current draft
+- **Mail AI Chat** — ask about today's Inbox, search by sender or subject, summarize messages, and review AI-written replies before saving them as drafts
 - **Works in Discord, WhatsApp, and any app you add** — opt-in per app: screenshots the chat window as context and inserts the message into the chat box, never sending it for you
 - **Multiple AI providers** — Anthropic (Claude), OpenAI (GPT), Google Gemini, OpenRouter, and TrustedTokens (EU-sovereign)
 - **Local and custom servers** — connect to local or remote OpenAI-compatible servers, with an optional API key
@@ -47,6 +48,8 @@ Composing from a screenshot is off for every app until you enable it under **Set
 ### Download
 
 Grab the latest `.dmg` from the [Webpage](https://jpwahle.github.io/apple-mail-ai-plugin/).
+
+The app bundle includes an **AI Reply** Mail extension. After installing the app, open **Mail → Settings → Extensions**, enable **AI Reply**, then reopen any compose window. Its envelope-and-sparkles button opens the contextual assistant for that draft. If the extension was just installed and is not listed yet, quit and reopen Mail once.
 
 ## Get Your API Key
 
@@ -169,6 +172,8 @@ make notarize \
 
 - API keys are stored in macOS Keychain — never written to disk as plain text
 - Email content is sent directly to your chosen AI provider and nowhere else
+- Mail AI Chat reads the unified Inbox only when a supported command needs it; vague or unsupported chat messages do not attach email content
+- Draft proposals are shown for confirmation before Mail is modified, and the chat has no send or delete action
 - No analytics, no telemetry, no data collection
 
 ## License
