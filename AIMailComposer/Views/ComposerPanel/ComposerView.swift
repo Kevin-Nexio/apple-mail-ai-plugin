@@ -810,6 +810,7 @@ private struct ErrorState: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
+                .textSelection(.enabled)
             if let recoveryURL {
                 Link("OpenRouter privacy settings", destination: recoveryURL)
             }

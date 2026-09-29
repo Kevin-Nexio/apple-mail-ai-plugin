@@ -5,7 +5,8 @@ enum AIClientFactory {
         for model: AIModel,
         keychainService: KeychainService,
         localAIBaseURL: String = "http://localhost:1234",
-        chatGPTWebBaseURL: String = "http://127.0.0.1:8791"
+        chatGPTWebBaseURL: String = "http://127.0.0.1:8791",
+        chatGPTWebAPIKey: String? = nil
     ) throws -> AIClient {
         switch model.provider {
         case .codex:
@@ -14,7 +15,7 @@ enum AIClientFactory {
             return LocalAIClient(
                 baseURL: chatGPTWebBaseURL,
                 model: model.id,
-                apiKey: keychainService.getKey(for: .chatgptWeb),
+                apiKey: chatGPTWebAPIKey,
                 provider: .chatgptWeb
             )
         case .anthropic:

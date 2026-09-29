@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 final class SettingsStore: ObservableObject {
     private let keychainService = KeychainService()
+    private let loopbackRelayTokenStore = LoopbackRelayTokenStore()
     private var chatGPTWebFetchGeneration = 0
 
     init() {
@@ -299,22 +300,29 @@ final class SettingsStore: ObservableObject {
     }
 
     func setAPIKey(_ key: String, for provider: AIProvider) throws {
-        try keychainService.setKey(key, for: provider)
         if provider == .chatgptWeb {
+            try loopbackRelayTokenStore.set(key)
             chatGPTWebFetchGeneration += 1
             isFetchingChatGPTWeb = false
+        } else {
+            try keychainService.setKey(key, for: provider)
         }
     }
 
     func getAPIKey(for provider: AIProvider) -> String? {
-        keychainService.getKey(for: provider)
+        if provider == .chatgptWeb {
+            return loopbackRelayTokenStore.get()
+        }
+        return keychainService.getKey(for: provider)
     }
 
     func deleteAPIKey(for provider: AIProvider) {
-        keychainService.deleteKey(for: provider)
         if provider == .chatgptWeb {
+            loopbackRelayTokenStore.delete()
             chatGPTWebFetchGeneration += 1
             isFetchingChatGPTWeb = false
+        } else {
+            keychainService.deleteKey(for: provider)
         }
     }
 
@@ -341,7 +349,8 @@ final class SettingsStore: ObservableObject {
             for: model,
             keychainService: keychainService,
             localAIBaseURL: localAIBaseURL,
-            chatGPTWebBaseURL: chatGPTWebBaseURL
+            chatGPTWebBaseURL: chatGPTWebBaseURL,
+            chatGPTWebAPIKey: getAPIKey(for: .chatgptWeb)
         )
     }
 
