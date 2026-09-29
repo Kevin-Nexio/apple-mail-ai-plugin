@@ -1,6 +1,7 @@
 APP_NAME = Apple Mail AI Plugin
 BUNDLE_NAME = AIMailComposer
 BUNDLE_ID = com.aiMailComposer
+EXTENSION_NAME = MailReplyExtension
 VERSION = 0.1.0
 BUILD_DIR = build
 APP_BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
@@ -17,6 +18,7 @@ TEAM_ID ?=
 build:
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Resources"
+	@mkdir -p "$(APP_BUNDLE)/Contents/PlugIns"
 	xcodebuild -project $(BUNDLE_NAME).xcodeproj \
 		-scheme $(BUNDLE_NAME) \
 		-configuration Debug \
@@ -29,6 +31,8 @@ build:
 	@# re-sign standalone, since we assemble our own bundle around it.
 	@codesign --force --sign - "$(EXECUTABLE)"
 	@cp AIMailComposer/Resources/AppIcon.icns "$(APP_BUNDLE)/Contents/Resources/"
+	@rm -rf "$(APP_BUNDLE)/Contents/PlugIns/$(EXTENSION_NAME).appex"
+	@cp -R "$(BUILD_DIR)/DerivedData/Build/Products/Debug/$(BUNDLE_NAME).app/Contents/PlugIns/$(EXTENSION_NAME).appex" "$(APP_BUNDLE)/Contents/PlugIns/"
 	@cp AIMailComposer/App/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
 	@# Merge additional keys into Info.plist
 	@/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $(BUNDLE_ID)" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
@@ -39,12 +43,14 @@ build:
 	@/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
 	@/usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
 	@/usr/libexec/PlistBuddy -c "Add :NSPrincipalClass string NSApplication" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
+	@codesign --force --sign - --entitlements AIMailComposer/Entitlements/AIMailComposer.entitlements "$(APP_BUNDLE)"
 	@echo "\n✅ Built: $(APP_BUNDLE)"
 
 # Release build (optimized, universal: arm64 + x86_64)
 release:
 	@mkdir -p "$(APP_BUNDLE)/Contents/MacOS"
 	@mkdir -p "$(APP_BUNDLE)/Contents/Resources"
+	@mkdir -p "$(APP_BUNDLE)/Contents/PlugIns"
 	xcodebuild -project $(BUNDLE_NAME).xcodeproj \
 		-scheme $(BUNDLE_NAME) \
 		-configuration Release \
@@ -59,6 +65,8 @@ release:
 		{ echo "❌ Expected universal binary, got: $$(lipo -archs "$(EXECUTABLE)")"; exit 1; }
 	@echo "Architectures: $$(lipo -archs "$(EXECUTABLE)")"
 	@cp AIMailComposer/Resources/AppIcon.icns "$(APP_BUNDLE)/Contents/Resources/"
+	@rm -rf "$(APP_BUNDLE)/Contents/PlugIns/$(EXTENSION_NAME).appex"
+	@cp -R "$(BUILD_DIR)/DerivedData/Build/Products/Release/$(BUNDLE_NAME).app/Contents/PlugIns/$(EXTENSION_NAME).appex" "$(APP_BUNDLE)/Contents/PlugIns/"
 	@cp AIMailComposer/App/Info.plist "$(APP_BUNDLE)/Contents/Info.plist"
 	@/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $(BUNDLE_ID)" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
 	@/usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string $(BUNDLE_NAME)" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
@@ -68,6 +76,7 @@ release:
 	@/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string 1" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
 	@/usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string APPL" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
 	@/usr/libexec/PlistBuddy -c "Add :NSPrincipalClass string NSApplication" "$(APP_BUNDLE)/Contents/Info.plist" 2>/dev/null || true
+	@codesign --force --sign - --entitlements AIMailComposer/Entitlements/AIMailComposer.entitlements "$(APP_BUNDLE)"
 	@echo "\n✅ Release built: $(APP_BUNDLE)"
 
 # Code sign (for distribution outside App Store)

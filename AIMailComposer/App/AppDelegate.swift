@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hotkeyService: HotkeyService?
     private var panelController: ComposerPanelController?
+    private var mailChatPanelController: MailChatPanelController?
     private var settingsWindow: NSWindow?
     private var statusMenu: NSMenu!
     private var composeMenuItem: NSMenuItem!
@@ -37,6 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { updateChecker.checkForUpdates() }
     }
 
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: { $0.scheme == "aimailcomposer" && $0.host == "compose" }) else { return }
+        openComposerPanel(target: .mail)
+    }
+
     // MARK: - Menu Bar
 
     private func setupMenuBar() {
@@ -60,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusMenu = NSMenu()
         statusMenu.addItem(updateMenuItem)
         statusMenu.addItem(updateSeparator)
+        statusMenu.addItem(NSMenuItem(title: "Open Mail AI Chat…", action: #selector(showMailChat), keyEquivalent: ""))
         statusMenu.addItem(composeMenuItem)
         statusMenu.addItem(NSMenuItem.separator())
         statusMenu.addItem(NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ","))
@@ -83,8 +90,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.statusItem.menu = nil
             }
         } else {
-            openSettings()
+            showMailChat()
         }
+    }
+
+    // MARK: - Mail Chat
+
+    @objc private func showMailChat() {
+        if mailChatPanelController == nil {
+            mailChatPanelController = MailChatPanelController(settingsStore: settingsStore)
+        }
+        mailChatPanelController?.showPanel()
     }
 
     // MARK: - Hotkey
@@ -171,7 +187,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func showComposerPanel() {
         // Resolve the target before the panel activates this app, otherwise
         // the frontmost app would be us.
-        let target = resolveTarget()
+        openComposerPanel(target: resolveTarget())
+    }
+
+    private func openComposerPanel(target: ComposerTarget) {
         if panelController == nil {
             panelController = ComposerPanelController(settingsStore: settingsStore)
         }

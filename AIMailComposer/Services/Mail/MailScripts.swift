@@ -224,9 +224,7 @@ enum MailScripts {
     /// `MailBridge` then falls back to the Accessibility writer
     /// (`AccessibilityWriter`), mirroring the read path's fallback.
     static func insertReply(_ text: String) -> String {
-        let escaped = text
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
+        let escaped = appleScriptString(text)
         let lines = escaped.components(separatedBy: "\n")
         let asString = lines.joined(separator: "\" & return & \"")
         return """
@@ -252,6 +250,134 @@ enum MailScripts {
         end if
         return "NO_OUTGOING"
         """
+    }
+
+    /// Messages received since local midnight in Mail's unified Inbox.
+    /// The script never mutates Mail and caps both record count and body size
+    /// before data crosses into the app.
+    static func fetchTodayInboxMessages(limit: Int) -> String {
+        let safeLimit = max(1, min(limit, 100))
+        return inboxScript(candidateExpression: "every message of inbox whose date received is greater than or equal to startOfToday", limit: safeLimit)
+    }
+
+    /// Subject/sender search in Mail's unified Inbox. Body search is omitted
+    /// deliberately because forcing Mail to load every message body can block
+    /// the app for minutes on a large mailbox.
+    static func searchInboxMessages(query: String, limit: Int) -> String {
+        let safeLimit = max(1, min(limit, 100))
+        let escaped = appleScriptString(query)
+        return inboxScript(
+            prelude: "set searchText to \"\(escaped)\"",
+            candidateExpression: "every message of inbox whose ((subject contains searchText) or (sender contains searchText))",
+            limit: safeLimit
+        )
+    }
+
+    /// Creates a saved, invisible reply draft for one Inbox message. It never
+    /// invokes Mail's `send` command.
+    static func createReplyDraft(messageID: Int, body: String) -> String {
+        let escaped = appleScriptString(body)
+        let lines = escaped.components(separatedBy: "\n")
+        let asString = lines.joined(separator: "\" & return & \"")
+        return """
+        tell application "Mail"
+            try
+                set matches to every message of inbox whose id is \(messageID)
+                if (count of matches) is 0 then return "ERROR:MESSAGE_NOT_FOUND"
+                set sourceMessage to item 1 of matches
+                set draftMessage to reply sourceMessage opening window false
+                set originalContent to ""
+                try
+                    set originalContent to content of draftMessage
+                end try
+                set content of draftMessage to "\(asString)" & return & return & originalContent
+                save draftMessage
+                return "DRAFT_CREATED"
+            on error errMsg
+                return "ERROR:" & errMsg
+            end try
+        end tell
+        """
+    }
+
+    static let fetchMessageViewerFrame = """
+    tell application "Mail"
+        if (count of message viewers) is 0 then return ""
+        try
+            set viewerBounds to bounds of window of message viewer 1
+            return (item 1 of viewerBounds as text) & "," & (item 2 of viewerBounds as text) & "," & (item 3 of viewerBounds as text) & "," & (item 4 of viewerBounds as text)
+        on error
+            return ""
+        end try
+    end tell
+    """
+
+    private static func inboxScript(
+        prelude: String = "set startOfToday to current date\nset time of startOfToday to 0",
+        candidateExpression: String,
+        limit: Int
+    ) -> String {
+        """
+        on replaceText(findText, replacementText, sourceText)
+            set oldDelimiters to AppleScript's text item delimiters
+            set AppleScript's text item delimiters to findText
+            set textItems to text items of sourceText
+            set AppleScript's text item delimiters to replacementText
+            set cleanValue to textItems as text
+            set AppleScript's text item delimiters to oldDelimiters
+            return cleanValue
+        end replaceText
+
+        on cleanText(theValue)
+            try
+                set valueText to theValue as text
+            on error
+                set valueText to ""
+            end try
+            set valueText to my replaceText(ASCII character 31, " ", valueText)
+            set valueText to my replaceText(ASCII character 30, " ", valueText)
+            return valueText
+        end cleanText
+
+        \(prelude)
+        set fieldSeparator to ASCII character 31
+        set recordSeparator to ASCII character 30
+        set output to ""
+
+        tell application "Mail"
+            set candidates to \(candidateExpression)
+            set candidateCount to count of candidates
+            if candidateCount > \(limit) then set candidateCount to \(limit)
+
+            repeat with itemIndex from 1 to candidateCount
+                set msg to item itemIndex of candidates
+                set bodyText to ""
+                try
+                    set bodyText to content of msg as text
+                    if (length of bodyText) > 6000 then set bodyText to text 1 thru 6000 of bodyText
+                end try
+
+                set recordText to (id of msg as text) & fieldSeparator
+                try
+                    set recordText to recordText & my cleanText(message id of msg)
+                end try
+                set recordText to recordText & fieldSeparator & my cleanText(sender of msg)
+                set recordText to recordText & fieldSeparator & my cleanText(subject of msg)
+                set recordText to recordText & fieldSeparator & my cleanText(date received of msg)
+                set recordText to recordText & fieldSeparator & my cleanText(bodyText)
+                set recordText to recordText & fieldSeparator & (read status of msg as text)
+                set recordText to recordText & fieldSeparator & (was replied to of msg as text)
+                set output to output & recordText & recordSeparator
+            end repeat
+        end tell
+        return output
+        """
+    }
+
+    private static func appleScriptString(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
     }
 
     static let checkMailRunning = """

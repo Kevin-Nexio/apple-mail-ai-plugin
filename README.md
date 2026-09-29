@@ -30,6 +30,7 @@ Use your **ChatGPT subscription through Codex**, bring your own API key, or conn
 
 - **Menu bar app** — stays out of your way until you need it
 - **Works with Apple Mail** — reads your email thread, recipients, subject, and current draft
+- **Mail AI Chat** — ask about today's Inbox, search by sender or subject, summarize messages, and review AI-written replies before saving them as drafts
 - **Works in Discord, WhatsApp, and any app you add** — opt-in per app: screenshots the chat window as context and inserts the message into the chat box, never sending it for you
 - **ChatGPT subscription** — use the ChatGPT account already connected to Codex, without adding an OpenAI API key
 - **ChatGPT Web (experimental)** — use a local community browser relay as a separate provider, with its own connection light
@@ -49,6 +50,8 @@ Composing from a screenshot is off for every app until you enable it under **Set
 ### Download
 
 Grab the latest `.dmg` from the [Webpage](https://jpwahle.github.io/apple-mail-ai-plugin/).
+
+The app bundle includes an **AI Reply** Mail extension. After installing the app, open **Mail → Settings → Extensions**, enable **AI Reply**, then reopen any compose window. Its envelope-and-sparkles button opens the contextual assistant for that draft. If the extension was just installed and is not listed yet, quit and reopen Mail once.
 
 ## Get Your API Key
 
@@ -73,7 +76,7 @@ This mode connects to the community project [chatgpt-web-provider](https://githu
 4. Enable **ChatGPT Web (Experimental)**, paste the same relay token, and check that its status light turns green
 5. Select a model under **ChatGPT Web (Experimental)** in the model picker
 
-The plugin only accepts a loopback relay URL (`localhost`, `127.0.0.1`, or `::1`). The relay token is stored in macOS Keychain. Every generated email starts a fresh web conversation so context from an earlier email is not intentionally reused.
+The plugin only accepts a loopback relay URL (`localhost`, `127.0.0.1`, or `::1`). The relay token is read from the relay's user-only local configuration file (`~/.config/chatgpt-web-provider/env`, mode `600`), while provider API keys remain in macOS Keychain. Every generated email starts a fresh web conversation so context from an earlier email is not intentionally reused.
 
 This is unofficial browser automation. ChatGPT UI or Cloudflare changes can break it, and automated use may trigger warnings or account restrictions. Use a dedicated browser profile, keep the relay local, and do not use this mode if that risk is unacceptable. The plugin never reads ChatGPT cookies or account tokens; those remain inside the relay's browser profile.
 
@@ -136,12 +139,18 @@ The optional key is stored in macOS Keychain and sent as a Bearer token for both
 ## Usage
 
 1. Open **Apple Mail** and start composing a reply
-2. Press **⌥H** (Option + H) to open the composer panel
+2. Click the **AI Reply** button in the compose toolbar, or press **⌥H** (Option + H), to open the composer panel
 3. Type a few words describing what you want to say (e.g. "sounds good, let's meet thursday")
 4. Pick a model from the dropdown
 5. Hit **Generate** — the reply streams into your compose window
 
 The app reads the full email thread for context, so the generated reply stays relevant to the conversation.
+
+### Mail AI Chat
+
+Click the menu bar icon to open the floating chat next to Mail. You can ask it to summarize today's messages, find messages by sender or subject, or prepare replies for messages received today.
+
+Preparing replies is a two-step flow: the app first shows editable proposals, then creates only the drafts you select. It never sends, deletes, or moves a message. The first version searches the unified Inbox and prepares at most ten drafts per request.
 
 ### Discord, WhatsApp, and other apps
 
@@ -196,6 +205,8 @@ make notarize \
 - Experimental ChatGPT Web requests are sent to a loopback-only community relay, which controls its own isolated ChatGPT browser profile
 - API keys are stored in macOS Keychain — never written to disk as plain text
 - Email content is sent directly to your chosen AI provider and nowhere else
+- Mail AI Chat reads the unified Inbox only when a supported command needs it; vague or unsupported chat messages do not attach email content
+- Draft proposals are shown for confirmation before Mail is modified, and the chat has no send or delete action
 - No analytics, no telemetry, no data collection
 
 ## License

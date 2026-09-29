@@ -83,6 +83,52 @@ final class MailBridge {
         return context
     }
 
+    static func fetchTodayInboxMessages(limit: Int = 25) async throws -> [MailInboxMessage] {
+        guard await isMailRunning() else {
+            throw MailBridgeError.mailNotRunning
+        }
+        let raw = try await executeAppleScript(MailScripts.fetchTodayInboxMessages(limit: limit))
+        return MailInboxParser.parse(raw)
+    }
+
+    static func searchInboxMessages(query: String, limit: Int = 25) async throws -> [MailInboxMessage] {
+        guard await isMailRunning() else {
+            throw MailBridgeError.mailNotRunning
+        }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        let raw = try await executeAppleScript(MailScripts.searchInboxMessages(query: trimmed, limit: limit))
+        return MailInboxParser.parse(raw)
+    }
+
+    /// Saves one reply as a draft in Mail. The corresponding script contains
+    /// no send command and returns only after Mail confirms the save.
+    static func createReplyDraft(for message: MailInboxMessage, body: String) async throws {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw MailBridgeError.scriptFailed("The generated draft is empty")
+        }
+        let result = try await executeAppleScript(
+            MailScripts.createReplyDraft(messageID: message.id, body: trimmed)
+        )
+        guard result == "DRAFT_CREATED" else {
+            let detail = result.hasPrefix("ERROR:") ? String(result.dropFirst("ERROR:".count)) : result
+            throw MailBridgeError.scriptFailed(detail)
+        }
+    }
+
+    static func fetchMessageViewerFrame() async -> CGRect? {
+        guard let raw = try? await executeAppleScript(MailScripts.fetchMessageViewerFrame) else { return nil }
+        let values = raw.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard values.count == 4 else { return nil }
+        return CGRect(
+            x: values[0],
+            y: values[1],
+            width: values[2] - values[0],
+            height: values[3] - values[1]
+        )
+    }
+
     /// Opportunistically enrich the context via the AX reader. If AX isn't
     /// trusted or no compose window is found, the original context is
     /// returned unchanged — never throws.

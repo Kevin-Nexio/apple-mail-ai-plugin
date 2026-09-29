@@ -6,6 +6,10 @@
 	objectVersion = 70;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AB0000000000000000000001 /* MailReplyExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000002 /* MailReplyExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AA0000000000000000000018 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -14,11 +18,33 @@
 			remoteGlobalIDString = AA0000000000000000000007;
 			remoteInfo = AIMailComposer;
 		};
+		AB0000000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB0000000000000000000007;
+			remoteInfo = MailReplyExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AB000000000000000000000B /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AB0000000000000000000001 /* MailReplyExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AA0000000000000000000004 /* AIMailComposer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIMailComposer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000013 /* AIMailComposerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AIMailComposerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000000000000000000002 /* MailReplyExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MailReplyExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,6 +55,13 @@
 				"Entitlements/AIMailComposer.entitlements",
 			);
 			target = AA0000000000000000000007 /* AIMailComposer */;
+		};
+		AB0000000000000000000006 /* Exceptions for "MailReplyExtension" folder */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AB0000000000000000000007 /* MailReplyExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -55,6 +88,18 @@
 			path = Tests/AIMailComposerTests;
 			sourceTree = "<group>";
 		};
+		AB0000000000000000000005 /* MailReplyExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AB0000000000000000000006 /* Exceptions for "MailReplyExtension" folder */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = MailReplyExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +117,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AB0000000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -79,6 +131,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000005 /* AIMailComposer */,
+				AB0000000000000000000005 /* MailReplyExtension */,
 				AA0000000000000000000011 /* AIMailComposerTests */,
 				AA0000000000000000000003 /* Products */,
 			);
@@ -88,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000004 /* AIMailComposer.app */,
+				AB0000000000000000000002 /* MailReplyExtension.appex */,
 				AA0000000000000000000013 /* AIMailComposerTests.xctest */,
 			);
 			name = Products;
@@ -103,10 +157,12 @@
 				AA0000000000000000000008 /* Sources */,
 				AA0000000000000000000009 /* Frameworks */,
 				AA000000000000000000000A /* Resources */,
+				AB000000000000000000000B /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AB000000000000000000000C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA0000000000000000000005 /* AIMailComposer */,
@@ -141,6 +197,28 @@
 			productReference = AA0000000000000000000013 /* AIMailComposerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		AB0000000000000000000007 /* MailReplyExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB000000000000000000000E /* Build configuration list for PBXNativeTarget "MailReplyExtension" */;
+			buildPhases = (
+				AB0000000000000000000008 /* Sources */,
+				AB0000000000000000000009 /* Frameworks */,
+				AB000000000000000000000A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AB0000000000000000000005 /* MailReplyExtension */,
+			);
+			name = MailReplyExtension;
+			packageProductDependencies = (
+			);
+			productName = MailReplyExtension;
+			productReference = AB0000000000000000000002 /* MailReplyExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -156,6 +234,9 @@
 					AA0000000000000000000012 = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = AA0000000000000000000007;
+					};
+					AB0000000000000000000007 = {
+						CreatedOnToolsVersion = 26.0;
 					};
 				};
 			};
@@ -174,6 +255,7 @@
 			projectRoot = "";
 			targets = (
 				AA0000000000000000000007 /* AIMailComposer */,
+				AB0000000000000000000007 /* MailReplyExtension */,
 				AA0000000000000000000012 /* AIMailComposerTests */,
 			);
 		};
@@ -188,6 +270,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA0000000000000000000016 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB000000000000000000000A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -211,6 +300,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AB0000000000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -218,6 +314,11 @@
 			isa = PBXTargetDependency;
 			target = AA0000000000000000000007 /* AIMailComposer */;
 			targetProxy = AA0000000000000000000018 /* PBXContainerItemProxy */;
+		};
+		AB000000000000000000000C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB0000000000000000000007 /* MailReplyExtension */;
+			targetProxy = AB0000000000000000000003 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -359,6 +460,54 @@
 			};
 			name = Release;
 		};
+		AB000000000000000000000F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MailReplyExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aiMailComposer.MailReplyExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Debug;
+		};
+		AB0000000000000000000010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MailReplyExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aiMailComposer.MailReplyExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -385,6 +534,15 @@
 			buildConfigurations = (
 				AA000000000000000000001A /* Debug */,
 				AA000000000000000000001B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB000000000000000000000E /* Build configuration list for PBXNativeTarget "MailReplyExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB000000000000000000000F /* Debug */,
+				AB0000000000000000000010 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
