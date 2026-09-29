@@ -77,7 +77,7 @@ final class MailBridge {
         // macOS versions). Fall back to the Accessibility reader when
         // permission is granted; otherwise return the context as-is.
         if context.recipients.isEmpty && context.currentDraft.isEmpty {
-            return enrichViaAccessibility(context: context)
+            return await enrichViaAccessibility(context: context)
         }
 
         return context
@@ -132,12 +132,16 @@ final class MailBridge {
     /// Opportunistically enrich the context via the AX reader. If AX isn't
     /// trusted or no compose window is found, the original context is
     /// returned unchanged — never throws.
-    private static func enrichViaAccessibility(context: ComposerContext) -> ComposerContext {
+    private static func enrichViaAccessibility(context: ComposerContext) async -> ComposerContext {
         guard AXPermissionChecker.isGranted() else {
             return context
         }
 
-        guard let ax = AccessibilityReader.readComposeWindow() else {
+        let ax = await Task.detached(priority: .userInitiated) {
+            AccessibilityReader.readComposeWindow()
+        }.value
+
+        guard let ax else {
             // AX is granted but no compose window was found — return the
             // original (possibly empty) context rather than failing.
             return context

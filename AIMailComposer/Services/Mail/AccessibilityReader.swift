@@ -17,6 +17,9 @@ import AppKit
 /// and (c) sets a messaging timeout so a busy Mail can't hang the panel.
 enum AccessibilityReader {
 
+    private static let maximumNodes = 500
+    private static let maximumDepth = 80
+
     struct ComposeContext {
         let subject: String
         let recipients: [String]
@@ -94,6 +97,8 @@ enum AccessibilityReader {
         var recipients: [String] = []
         var draftLines: [String] = []
         var foundComposeMarker = false
+        var reachedQuotedThread = false
+        var visited: Set<CFHashCode> = []
     }
 
     /// One depth-first pass that records the subject, recipient addresses,
@@ -101,8 +106,12 @@ enum AccessibilityReader {
     private static func walk(
         _ element: AXUIElement,
         collectingBody: Bool,
+        depth: Int = 0,
         into acc: inout Walker
     ) {
+        guard depth <= maximumDepth, acc.visited.count < maximumNodes else { return }
+        guard acc.visited.insert(CFHash(element)).inserted else { return }
+
         let role = axRole(element)
         let identifier = axIdentifier(element)
 
@@ -129,17 +138,41 @@ enum AccessibilityReader {
 
         if inBody, let r = role, r == "AXStaticText" || r == "AXTextArea" {
             if let val = axValue(element), !val.isEmpty {
+                if isQuotedThreadBoundary(val) {
+                    acc.reachedQuotedThread = true
+                    return
+                }
                 acc.draftLines.append(val)
             }
         }
+
+        if inBody && acc.reachedQuotedThread { return }
 
         var childrenRef: CFTypeRef?
         AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef)
         if let children = childrenRef as? [AXUIElement] {
             for child in children {
-                walk(child, collectingBody: inBody, into: &acc)
+                walk(child, collectingBody: inBody, depth: depth + 1, into: &acc)
+                if inBody && acc.reachedQuotedThread { break }
             }
         }
+    }
+
+    /// Mail places the original conversation below a localized attribution
+    /// line. Anything after it is quoted history, not text authored in the
+    /// current draft, so the AX walk stops there instead of traversing an
+    /// arbitrarily large thread.
+    static func isQuotedThreadBoundary(_ text: String) -> Bool {
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        return normalized.contains(" a écrit :")
+            || normalized.contains(" wrote:")
+            || normalized.contains(" schrieb ")
+            || normalized.contains(" ha scritto:")
+            || normalized.contains(" escribió:")
+            || normalized.contains(" escreveu:")
     }
 
     // MARK: - Recipients
