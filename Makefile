@@ -2,12 +2,15 @@ APP_NAME = Apple Mail AI Plugin
 BUNDLE_NAME = AIMailComposer
 BUNDLE_ID = com.aiMailComposer
 EXTENSION_NAME = MailReplyExtension
+EXTENSION_BUNDLE = $(APP_BUNDLE)/Contents/PlugIns/$(EXTENSION_NAME).appex
 VERSION = 0.1.0
 BUILD_DIR = build
 APP_BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
 EXECUTABLE = $(APP_BUNDLE)/Contents/MacOS/$(BUNDLE_NAME)
 # Set to your Developer ID for distribution, or leave empty for ad-hoc
 SIGNING_IDENTITY ?=
+# Optional keychain containing a local or CI signing identity.
+SIGNING_KEYCHAIN ?=
 # Set to your Apple ID for notarization
 APPLE_ID ?=
 TEAM_ID ?=
@@ -82,16 +85,34 @@ release:
 # Code sign (for distribution outside App Store)
 sign: release
 	@if [ -z "$(SIGNING_IDENTITY)" ]; then \
-		echo "⚠️  No SIGNING_IDENTITY set. Ad-hoc signing..."; \
-		codesign --force --deep --sign - \
+		echo "⚠️  No SIGNING_IDENTITY set. Stable local ad-hoc signing..."; \
+		codesign --force --options runtime --sign - \
+			--requirements '=designated => identifier "com.aiMailComposer.MailReplyExtension"' \
+			--preserve-metadata=entitlements \
+			"$(EXTENSION_BUNDLE)"; \
+		codesign --force --options runtime --sign - \
+			--requirements '=designated => identifier "$(BUNDLE_ID)"' \
 			--entitlements AIMailComposer/Entitlements/AIMailComposer.entitlements \
 			"$(APP_BUNDLE)"; \
 	else \
 		echo "Signing with: $(SIGNING_IDENTITY)"; \
-		codesign --force --deep --options runtime \
-			--sign "$(SIGNING_IDENTITY)" \
-			--entitlements AIMailComposer/Entitlements/AIMailComposer.entitlements \
-			"$(APP_BUNDLE)"; \
+		if [ -n "$(SIGNING_KEYCHAIN)" ]; then \
+			codesign --force --options runtime \
+				--sign "$(SIGNING_IDENTITY)" --keychain "$(SIGNING_KEYCHAIN)" \
+				--preserve-metadata=entitlements "$(EXTENSION_BUNDLE)"; \
+			codesign --force --options runtime \
+				--sign "$(SIGNING_IDENTITY)" --keychain "$(SIGNING_KEYCHAIN)" \
+				--entitlements AIMailComposer/Entitlements/AIMailComposer.entitlements \
+				"$(APP_BUNDLE)"; \
+		else \
+			codesign --force --options runtime \
+				--sign "$(SIGNING_IDENTITY)" \
+				--preserve-metadata=entitlements "$(EXTENSION_BUNDLE)"; \
+			codesign --force --options runtime \
+				--sign "$(SIGNING_IDENTITY)" \
+				--entitlements AIMailComposer/Entitlements/AIMailComposer.entitlements \
+				"$(APP_BUNDLE)"; \
+		fi; \
 	fi
 	@echo "✅ Signed: $(APP_BUNDLE)"
 
