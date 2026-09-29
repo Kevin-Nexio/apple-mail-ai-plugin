@@ -20,8 +20,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updateSeparator: NSMenuItem!
     private var updateCheckTimer: Timer?
     private var updateStateCancellable: AnyCancellable?
+    private var defaultPresentationWorkItem: DispatchWorkItem?
+    private var pendingComposeURL = false
+    private var didFinishLaunching = false
     let settingsStore = SettingsStore()
     let updateChecker = UpdateChecker()
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handleGetURLEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // SwiftUI's Settings scene auto-creates an empty window on launch.
@@ -34,13 +46,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeUpdateState()
         scheduleRecurringUpdateChecks()
         settingsStore.startAutoRefresh()
-        openSettings()
+        didFinishLaunching = true
+        if pendingComposeURL {
+            pendingComposeURL = false
+            DispatchQueue.main.async { [weak self] in
+                self?.presentComposerFromURL()
+            }
+        } else {
+            scheduleDefaultPresentation()
+        }
         Task { updateChecker.checkForUpdates() }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard urls.contains(where: { $0.scheme == "aimailcomposer" && $0.host == "compose" }) else { return }
+        guard urls.contains(where: Self.isComposeURL) else { return }
+        receiveComposeURL()
+    }
+
+    @objc private func handleGetURLEvent(
+        _ event: NSAppleEventDescriptor,
+        withReplyEvent replyEvent: NSAppleEventDescriptor
+    ) {
+        guard let value = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: value),
+              Self.isComposeURL(url) else { return }
+        receiveComposeURL()
+    }
+
+    private func receiveComposeURL() {
+        guard didFinishLaunching else {
+            pendingComposeURL = true
+            return
+        }
+        presentComposerFromURL()
+    }
+
+    private func presentComposerFromURL() {
+        defaultPresentationWorkItem?.cancel()
+        settingsWindow?.orderOut(nil)
         openComposerPanel(target: .mail)
+    }
+
+    static func isComposeURL(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "aimailcomposer" && url.host?.lowercased() == "compose"
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        NSAppleEventManager.shared().removeEventHandler(
+            forEventClass: AEEventClass(kInternetEventClass),
+            andEventID: AEEventID(kAEGetURL)
+        )
+    }
+
+    private func scheduleDefaultPresentation() {
+        guard !pendingComposeURL else { return }
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self, !self.pendingComposeURL else { return }
+            self.openSettings()
+        }
+        defaultPresentationWorkItem = workItem
+
+        // Launch Services delivers custom URLs just after didFinishLaunching.
+        // Give that event priority so an extension launch opens the composer
+        // instead of briefly creating a settings window over it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
     }
 
     // MARK: - Menu Bar
