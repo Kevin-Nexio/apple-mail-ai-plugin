@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The missing AI plugin for Apple Mail — Claude, GPT &amp; Gemini in Mail.app</title>
-  <meta name="description" content="Apple Mail AI Plugin is a free, open-source macOS menu bar app that writes email replies directly inside Apple Mail — with Claude Opus 5, GPT-5.6, Gemini, or a local model via Ollama and LM Studio. Bring your own API key. No accounts, no subscriptions.">
-  <meta name="keywords" content="Apple Mail AI Plugin, Apple Mail AI, AI email reply, macOS Mail AI, Apple Mail ChatGPT, Apple Mail Claude, Apple Mail Gemini, AI Mail plugin, Mail.app AI, AI email assistant macOS, local AI email, Ollama Apple Mail, LM Studio Apple Mail, open source Apple Mail AI">
+  <title>The missing AI plugin for Apple Mail — AI replies in Mail, Discord &amp; WhatsApp</title>
+  <meta name="description" content="Apple Mail AI Plugin is a free, open-source macOS menu bar app that writes email replies directly inside Apple Mail, and chat messages in Discord, WhatsApp, and any app you switch on. Claude, GPT, Gemini, or a local model via Ollama and LM Studio. Bring your own API key. No accounts, no subscriptions.">
+  <meta name="keywords" content="Apple Mail AI Plugin, Apple Mail AI, AI email reply, macOS Mail AI, Apple Mail ChatGPT, Apple Mail Claude, Apple Mail Gemini, AI Mail plugin, Mail.app AI, AI email assistant macOS, local AI email, Ollama Apple Mail, LM Studio Apple Mail, open source Apple Mail AI, Discord AI reply mac, WhatsApp AI message mac, AI chat reply macOS, compose message from screenshot">
   <meta name="author" content="Jan Philip Wahle">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
   <meta name="theme-color" content="#FBFBFD" media="(prefers-color-scheme: light)">
@@ -23,7 +23,7 @@
   <meta property="og:locale" content="en_US">
   <meta property="og:url" content="https://jpwahle.github.io/apple-mail-ai-plugin/">
   <meta property="og:title" content="The missing AI plugin for Apple Mail">
-  <meta property="og:description" content="A native macOS menu bar app that writes email replies inside Apple Mail — Claude, GPT, Gemini, or a fully local model. Open source. Bring your own API key.">
+  <meta property="og:description" content="A native macOS menu bar app that writes email replies inside Apple Mail, and messages in Discord, WhatsApp, and any app you switch on. Claude, GPT, Gemini, or a fully local model. Open source. Bring your own API key.">
   <meta property="og:image" content="https://jpwahle.github.io/apple-mail-ai-plugin/logo-light.png">
   <meta property="og:image:alt" content="Apple Mail AI Plugin logo">
   <meta property="og:image:width" content="1024">
@@ -32,7 +32,7 @@
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="The missing AI plugin for Apple Mail">
-  <meta name="twitter:description" content="Type your thoughts, press ⌥H, and a finished reply streams into Apple Mail. Claude, GPT, Gemini — or a local model. Open source.">
+  <meta name="twitter:description" content="Type your thoughts, press ⌥H, and a finished reply streams into Apple Mail. The same shortcut now writes in Discord, WhatsApp, and any app you switch on. Claude, GPT, Gemini, or a local model. Open source.">
   <meta name="twitter:image" content="https://jpwahle.github.io/apple-mail-ai-plugin/logo-light.png">
   <meta name="twitter:image:alt" content="Apple Mail AI Plugin logo">
 
@@ -46,7 +46,7 @@
     "applicationCategory": "ProductivityApplication",
     "applicationSubCategory": "Email",
     "operatingSystem": "macOS 14 (Sonoma) or later",
-    "description": "A native macOS menu bar app that writes email replies directly in Apple Mail using AI — Claude, ChatGPT, Gemini, OpenRouter, or fully local models via Ollama and LM Studio. Open source, bring your own API key.",
+    "description": "A native macOS menu bar app that writes email replies directly in Apple Mail, and chat messages in Discord, WhatsApp, and any app you switch on, using AI: Claude, ChatGPT, Gemini, OpenRouter, or fully local models via Ollama and LM Studio. Open source, bring your own API key.",
     "url": "https://jpwahle.github.io/apple-mail-ai-plugin/",
     "downloadUrl": "https://github.com/jpwahle/ai-apple-mail/releases/latest",
     "installUrl": "https://github.com/jpwahle/ai-apple-mail/releases/latest",
@@ -65,6 +65,8 @@
     },
     "featureList": [
       "Writes replies directly inside Apple Mail",
+      "Composes messages in Discord, WhatsApp, and any app you switch on, from a screenshot of the chat window",
+      "Inserts the message into the chat box without sending it",
       "Supports Claude, ChatGPT, Gemini, and OpenRouter",
       "Runs fully local models via Ollama and LM Studio",
       "Reads the full email thread for context",
@@ -97,6 +99,30 @@
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Only to the AI provider you chose, using your key — the plugin calls the provider's API directly, with no middleman server. With a local model, your email never leaves the Mac at all."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does it work outside Apple Mail, in Discord or WhatsApp?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Switch on Discord, WhatsApp, or any app you pick under Settings → General → Compose from a Screenshot. In those apps the plugin screenshots the chat window, sends it to your model as the context, and puts the finished message into the chat box. It never sends the message. You read it and press Enter."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What does it need to work in Discord or WhatsApp?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Two macOS permissions and a model that can read images. Screen Recording lets the plugin screenshot the window, Accessibility lets it type into the chat box, and current Claude, GPT, and Gemini models all read screenshots. Without Screen Recording it writes from your notes alone. Without Accessibility it copies the message to your clipboard. Both stay off until you switch on your first app."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Where does the screenshot go?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To the AI provider you chose, attached to that one request, and nowhere else. The composer shows you the exact thumbnail before you generate, with a Retake button. The plugin keeps the image in memory for the request and never writes it to disk."
         }
       },
       {
@@ -387,7 +413,7 @@
     .win .titlebar .title {
       flex: 1; text-align: center; font-size: 12.5px; font-weight: 600;
       color: var(--dim); letter-spacing: -0.01em;
-      padding-right: 52px; /* balances the traffic lights */
+      padding: 0 62px 0 10px; /* 10px gap from the lights, 62px right keeps the text centered */
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
@@ -487,6 +513,13 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .mviz-check { color: var(--accent); font-size: 14px; font-weight: 700; opacity: 0; transition: opacity 0.25s; }
+    .mviz-foot {
+      margin-top: 4px; padding: 11px 18px 13px;
+      border-top: 1px solid var(--win-line);
+      font-size: 12px; color: var(--dim); display: flex; gap: 8px; align-items: center;
+    }
+    .mviz-foot[hidden] { display: none; }
+    .mviz-foot .dotacc { color: var(--accent); }
     .mviz-row.active .mviz-check { opacity: 1; }
 
     /* Keychain mock */
@@ -518,6 +551,181 @@
     }
     .kviz-foot .dotacc { color: var(--accent); }
 
+
+    /* ==========================================================
+       Chat apps showcase (#apps)
+       Design note: same window-mockup signature as the rest of the
+       page. Discord and WhatsApp chrome colors appear only inside
+       their own window mockups, like the provider colors in the
+       model picker. Page chrome keeps the single blue accent.
+       ========================================================== */
+    .apps { padding-top: 24px; padding-bottom: 56px; }
+    .apps .section-head { margin-bottom: 32px; }
+    .section-lede { font-size: 17px; line-height: 1.55; color: var(--dim); max-width: 580px; margin-top: 20px; text-wrap: pretty; }
+    .section-lede kbd, .apps-steps kbd {
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.88em; color: var(--ink);
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 5px; padding: 1px 6px;
+    }
+    .apps-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .apps-tab {
+      min-height: 44px; padding: 9px 18px; border-radius: 980px;
+      border: 1px solid var(--line); background: transparent; color: var(--dim);
+      font: inherit; font-size: 14px; font-weight: 500; letter-spacing: -0.01em;
+      cursor: pointer; display: inline-flex; gap: 9px; align-items: center;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .apps-tab:hover { color: var(--ink); border-color: var(--dim); }
+    .apps-tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .apps-tab .app-badge {
+      width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: #fff;
+    }
+    /* Real app icons (extracted from the installed apps); they carry their own shape */
+    .apps-tab img.app-badge { width: 22px; height: 22px; border-radius: 0; margin: -3px 0; }
+    .st-row img.st-icon { width: 26px; height: 26px; border-radius: 0; margin: -2px 0; }
+    .apps-stage { display: grid; grid-template-columns: 1.22fr 1fr; gap: 22px; align-items: start; }
+    .apps-stage [hidden] { display: none !important; }
+    .apps-caption { font-size: 12.5px; color: var(--dim); margin-top: 14px; }
+
+    /* Discord window: Discord's own dark theme, in both page themes */
+    .dc { --dc-bg: #313338; --dc-side: #2B2D31; --dc-rail: #1E1F22; --dc-input: #383A40; --dc-text: #DBDEE1; --dc-dim: #949BA4; --dc-line: #26272B; --dc-bright: #F2F3F5;
+      background: var(--dc-bg); color: var(--dc-text); border-color: #1E1F22; }
+    .dc .titlebar { background: #1E1F22; border-color: #111214; }
+    .dc .titlebar .title { color: #949BA4; }
+    .dc-body { display: grid; grid-template-columns: 150px 1fr; min-height: 396px; }
+    .dc-side { background: var(--dc-side); display: flex; flex-direction: column; font-size: 12.5px; min-width: 0; }
+    .dc-server { padding: 11px 12px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--dc-line); color: var(--dc-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dc-chans { padding: 8px 0; }
+    .dc-chan { padding: 5px 10px; margin: 1px 8px; border-radius: 4px; color: var(--dc-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dc-chan.active { background: #404249; color: var(--dc-bright); }
+    .dc-me { margin-top: auto; background: #232428; padding: 8px 10px; display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--dc-bright); }
+    .dc-me .dc-av { width: 26px; height: 26px; font-size: 10px; }
+    .dc-me small { display: block; font-size: 10.5px; color: #23A55A; font-weight: 500; }
+    .dc-main { display: flex; flex-direction: column; min-width: 0; }
+    .dc-chanhead { padding: 10px 14px; border-bottom: 1px solid var(--dc-line); font-weight: 600; font-size: 13.5px; color: var(--dc-bright); }
+    .dc-msgs { padding: 12px 14px 6px; flex: 1; display: flex; flex-direction: column; gap: 13px; }
+    .dc-msg { display: flex; gap: 10px; min-width: 0; }
+    .dc-av { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #fff; }
+    .dc-name { font-size: 13px; font-weight: 600; color: var(--dc-bright); }
+    .dc-time { font-size: 10.5px; color: var(--dc-dim); margin-left: 6px; font-weight: 400; }
+    .dc-text { font-size: 13.5px; line-height: 1.4; }
+    .dc-input {
+      margin: 6px 14px 14px; background: var(--dc-input); border-radius: 8px;
+      padding: 10px 12px; font-size: 13.5px; line-height: 1.4; min-height: 42px;
+      display: flex; align-items: flex-start; gap: 9px;
+    }
+    .dc-input .plus { width: 18px; height: 18px; border-radius: 50%; background: #B5BAC1; color: #313338; font-size: 13px; font-weight: 700; line-height: 18px; text-align: center; flex-shrink: 0; margin-top: 1px; }
+    .chat-caret { display: inline-block; width: 2px; height: 15px; margin-left: 1px; vertical-align: text-bottom; animation: blink 1s infinite; }
+    .dc .chat-caret { background: var(--dc-bright); }
+    .chat-foot {
+      padding: 11px 14px; font-size: 12.5px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dc .chat-foot { background: #1E1F22; color: #949BA4; border-top: 1px solid #111214; }
+    .dc .chat-foot b, .wa .chat-foot b { font-weight: 600; }
+    .dc .chat-foot b { color: var(--dc-bright); }
+
+    /* WhatsApp window: follows the page theme, like WhatsApp itself */
+    .wa { --wa-bg: #EFEAE2; --wa-side: #FFFFFF; --wa-line: #E9EDEF; --wa-head: #F0F2F5; --wa-in: #FFFFFF; --wa-out: #D9FDD3; --wa-text: #111B21; --wa-dim: #667781; }
+    [data-theme="dark"] .wa { --wa-bg: #0B141A; --wa-side: #111B21; --wa-line: #222D34; --wa-head: #202C33; --wa-in: #202C33; --wa-out: #005C4B; --wa-text: #E9EDEF; --wa-dim: #8696A0; }
+    .wa-body { display: grid; grid-template-columns: 150px 1fr; min-height: 396px; background: var(--wa-side); color: var(--wa-text); }
+    .wa-list { border-right: 1px solid var(--wa-line); min-width: 0; }
+    .wa-chat-row { padding: 10px 12px; display: flex; gap: 10px; align-items: center; font-size: 12.5px; border-bottom: 1px solid var(--wa-line); min-width: 0; }
+    .wa-chat-row.active { background: var(--wa-head); }
+    .wa-chat-row div { min-width: 0; }
+    .wa-chat-row b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wa-chat-row small { color: var(--wa-dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .wa-av { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; }
+    .wa-main { display: flex; flex-direction: column; background: var(--wa-bg); min-width: 0; }
+    .wa-head { padding: 9px 14px; background: var(--wa-head); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--wa-line); }
+    .wa-head small { font-weight: 400; color: var(--wa-dim); font-size: 11px; display: block; }
+    .wa-msgs { flex: 1; padding: 14px 14px 6px; display: flex; flex-direction: column; gap: 6px; }
+    .wa-bubble { max-width: 80%; padding: 6px 9px 5px; border-radius: 8px; font-size: 13px; line-height: 1.4; background: var(--wa-in); box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+    .wa-bubble.out { align-self: flex-end; background: var(--wa-out); }
+    .wa-bubble .t { font-size: 10px; color: var(--wa-dim); text-align: right; margin-top: 2px; }
+    .wa-input { margin: 8px 12px 12px; background: var(--wa-in); border-radius: 8px; padding: 9px 12px; font-size: 13px; line-height: 1.4; min-height: 40px; display: flex; align-items: flex-start; gap: 8px; }
+    .wa .chat-caret { background: var(--wa-text); }
+    .wa .chat-foot { background: var(--wa-head); color: var(--wa-dim); border-top: 1px solid var(--wa-line); }
+    .wa .chat-foot b { color: var(--wa-text); }
+
+    /* Apple Mail compose window */
+    .ml-fields { padding: 2px 16px 0; font-size: 13px; }
+    .ml-field { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--win-line); min-width: 0; }
+    .ml-field span:first-child { color: var(--dim); width: 58px; flex-shrink: 0; }
+    .ml-pill { background: var(--card); border: 1px solid var(--win-line); border-radius: 980px; padding: 1px 9px; font-size: 12.5px; white-space: nowrap; }
+    .ml-body { padding: 14px 16px 10px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; min-height: 168px; }
+    .ml-quote { margin: 0 16px 16px; padding-left: 10px; border-left: 2px solid var(--accent); font-size: 12.5px; color: var(--dim); line-height: 1.45; }
+    .ml .chat-caret { background: var(--ink); }
+    .ml .chat-foot { background: var(--win-titlebar); color: var(--dim); border-top: 1px solid var(--win-line); }
+    .ml .chat-foot b { color: var(--ink); font-weight: 600; }
+    .cp-thread { display: flex; flex-direction: column; gap: 8px; }
+    .cp-trow { font-size: 12px; line-height: 1.4; display: grid; grid-template-columns: 1fr auto; column-gap: 8px; min-width: 0; }
+    .cp-trow b { font-weight: 600; }
+    .cp-trow span { color: var(--dim); font-size: 11px; white-space: nowrap; }
+    .cp-trow em { grid-column: 1 / -1; font-style: normal; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Settings → General → Compose from a Screenshot */
+    .st-body { padding: 16px 18px 18px; }
+    .st-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .st-group { background: var(--win-inset); border: 1px solid var(--win-line); border-radius: 8px; }
+    .st-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; font-size: 13px; min-width: 0; }
+    .st-row + .st-row { border-top: 1px solid var(--win-line); }
+    .st-icon { width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; }
+    .st-name { flex: 1; min-width: 0; }
+    .st-name small { display: block; font-size: 11px; color: var(--dim); font-family: ui-monospace, "SF Mono", Menlo, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .st-switch { width: 36px; height: 21px; border-radius: 11px; background: #34C759; position: relative; flex-shrink: 0; }
+    .st-switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+    .st-minus { width: 16px; height: 16px; border-radius: 50%; background: var(--dim); color: var(--win-bg); font-size: 13px; line-height: 15px; text-align: center; flex-shrink: 0; }
+    .st-add { margin-top: 10px; display: inline-block; font-size: 12px; padding: 4px 11px; border: 1px solid var(--win-line); border-radius: 6px; background: var(--win-bg); box-shadow: 0 1px 1px rgba(0,0,0,0.05); }
+    .st-foot { font-size: 11.5px; color: var(--dim); line-height: 1.5; margin-top: 14px; }
+    .st-more { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--win-line); font-size: 12.5px; color: var(--dim); display: flex; flex-direction: column; gap: 8px; }
+    .st-more span { display: flex; justify-content: space-between; gap: 12px; }
+    .st-more kbd { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--ink); background: var(--card); border: 1px solid var(--win-line); border-radius: 4px; padding: 0 5px; }
+
+    /* Composer panel (matches the v0.12 panel for a chat target) */
+    .cp-head { padding: 12px 16px 11px; display: flex; gap: 10px; align-items: flex-start; border-bottom: 1px solid var(--win-line); min-width: 0; }
+    .cp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+    .cp-head div { min-width: 0; }
+    .cp-title { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cp-sub { font-size: 11.5px; color: var(--dim); }
+    .cp-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .cp-card { background: var(--win-inset); border: 1px solid var(--win-line); border-radius: 10px; padding: 11px 12px; }
+    .cp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+    .cp-card-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: 6px; }
+    .cp-chip { font-size: 10.5px; padding: 3px 9px; border: 1px solid var(--win-line); border-radius: 980px; color: var(--dim); background: var(--win-bg); white-space: nowrap; }
+    .cp-thumb { width: 100%; height: 88px; border-radius: 6px; border: 1px solid var(--win-line); overflow: hidden; display: grid; grid-template-columns: 26% 1fr; }
+    .cp-thumb .th-side { padding: 8px 6px; display: flex; flex-direction: column; gap: 5px; }
+    .cp-thumb .th-main { padding: 8px 8px; display: flex; flex-direction: column; gap: 5px; }
+    .cp-thumb i { display: block; height: 4px; border-radius: 2px; }
+    .cp-thumb i.short { width: 55%; } .cp-thumb i.mid { width: 78%; } .cp-thumb i.long { width: 94%; }
+    .cp-thumb i.right { margin-left: auto; }
+    .cp-thumb i.box { height: 11px; margin-top: auto; border-radius: 4px; width: 100%; }
+    .th-dc { background: #313338; } .th-dc .th-side { background: #2B2D31; } .th-dc i { background: #4E5058; } .th-dc .th-side i { background: #3F4147; } .th-dc i.box { background: #383A40; }
+    .th-wa { background: var(--wa-bg, #EFEAE2); } .th-wa .th-side { background: var(--wa-side, #fff); } .th-wa .th-side i { background: #C9D1D6; } .th-wa i { background: #D5D9DC; height: 7px; border-radius: 3px; width: 60%; } .th-wa i.right { background: #B7E8AD; } .th-wa i.box { background: var(--wa-in, #fff); height: 11px; width: 100%; }
+    .th-sl { background: #fff; } .th-sl .th-side { background: #3F0E40; } .th-sl .th-side i { background: #6C3F6D; } .th-sl i { background: #DDDDDD; } .th-sl i.box { background: #F2F2F2; border: 1px solid #DDD; }
+    [data-theme="dark"] .th-sl { background: #1A1D21; } [data-theme="dark"] .th-sl i { background: #3A3D42; } [data-theme="dark"] .th-sl i.box { background: #222529; border-color: #3A3D42; }
+    .cp-thumb-cap { font-size: 11px; color: var(--dim); margin-top: 9px; line-height: 1.45; }
+    .cp-label { font-size: 10.5px; color: var(--dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .cp-prompt { padding: 9px 12px; background: var(--win-inset); border: 1px solid var(--win-line); border-radius: 8px; font-size: 13.5px; line-height: 1.45; }
+    .cp-reply { padding: 11px 13px; background: var(--win-inset); border: 1px solid var(--win-line); border-radius: 8px; font-size: 13.5px; line-height: 1.5; }
+    .cp-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .cp-primary { background: var(--accent); color: #fff; border-radius: 980px; padding: 8px 16px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+    .cp-secondary { font-size: 12.5px; color: var(--dim); }
+    .cp-note { font-size: 11px; color: var(--dim); line-height: 1.45; display: flex; gap: 6px; align-items: flex-start; }
+    .cp-note .dotacc { color: var(--accent); }
+
+    .apps-steps {
+      list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
+      margin-top: 44px; padding-top: 32px; border-top: 1px solid var(--line); counter-reset: step;
+    }
+    .apps-steps li { font-size: 15px; line-height: 1.55; color: var(--dim); }
+    .apps-steps li::before { counter-increment: step; content: "0" counter(step); display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 10px; }
+    .apps-steps strong { color: var(--ink); font-weight: 600; display: block; margin-bottom: 4px; font-size: 16px; }
+    .apps-limits { margin-top: 30px; font-size: 14px; color: var(--dim); max-width: 680px; line-height: 1.55; }
+
     /* ==========================================================
        Motion + responsive
        ========================================================== */
@@ -527,8 +735,14 @@
       .fade-up { opacity: 1; transform: none; }
     }
 
+    @media (max-width: 960px) {
+      .apps-stage { grid-template-columns: 1fr; }
+      .dc-body, .wa-body { min-height: 0; }
+    }
+
     @media (max-width: 820px) {
       .site-nav .links a:not(.nav-gh) { display: none; }
+      .apps-steps { grid-template-columns: 1fr; gap: 24px; }
       .feature-row { grid-template-columns: 1fr; gap: 28px; padding: 44px 0; }
       .feature-row.flip { direction: ltr; }
       .feature-row p { max-width: none; }
@@ -546,6 +760,9 @@
       .kviz-label { width: 68px; font-size: 12px; }
       .kviz-field { font-size: 11px; padding: 7px 10px; }
       .demo-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .dc-body, .wa-body { grid-template-columns: 1fr; }
+      .dc-side, .wa-list { display: none; }
+      .apps-tab { padding: 9px 14px; font-size: 13px; }
     }
   </style>
 </head>
@@ -560,6 +777,7 @@
       <span class="brand-name">Apple Mail AI Plugin</span>
     </a>
     <div class="links">
+      <a href="#apps">Discord &amp; WhatsApp</a>
       <a href="#features">Features</a>
       <a href="#faq">FAQ</a>
       <a class="nav-gh" href="https://github.com/jpwahle/ai-apple-mail">GitHub</a>
@@ -576,8 +794,9 @@
     <h1>The <em>missing</em> AI plugin for&nbsp;Apple&nbsp;Mail.</h1>
     <p class="tagline">
       Type a few rough thoughts, press <kbd>⌥H</kbd>, and a finished reply streams
-      straight into your draft — written by Claude, GPT, or Gemini with your own
-      API key, or by a local model with no key at all.
+      straight into your Mail draft. The same shortcut now writes in Discord,
+      WhatsApp, and any app you switch on. Claude, GPT, or Gemini with your own
+      API key, or a local model with no key at all.
     </p>
     <div class="cta-row">
       <a href="https://github.com/jpwahle/ai-apple-mail/releases/latest" class="btn btn--primary" id="download-btn">
@@ -585,7 +804,7 @@
           <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
         </svg>
         <span>Download for macOS</span>
-        <span class="meta" id="version-meta">v1.4 · 2.1 MB</span>
+        <span class="meta" id="version-meta">v0.12.0 · 5.1 MB</span>
       </a>
       <a href="https://github.com/jpwahle/ai-apple-mail" class="btn btn--ghost">
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
@@ -629,6 +848,245 @@
     </div>
   </section>
 
+
+  <section id="apps" class="section apps">
+    <div class="section-head">
+      <!-- "New in" label: shown by the script only while the feature is under 90 days old
+           and the latest release is still 0.12.x, so it retires itself. -->
+      <span class="eyebrow" data-new-in="0.12" data-shipped="2026-09-22" data-new-label="New in v0.12 · September 2026">Beyond Mail</span>
+      <h2>Same shortcut. Any app on your Mac.</h2>
+      <p class="section-lede">
+        In Mail it reads the thread. Switch on Discord, WhatsApp, or any app you pick,
+        and the same <kbd>⌥H</kbd> screenshots the window instead, sends it to your model
+        as the context, and puts the finished message into the chat box. It never presses
+        Send. You do.
+      </p>
+    </div>
+
+    <div class="apps-tabs" role="tablist" aria-label="Pick an app">
+      <button type="button" class="apps-tab" role="tab" aria-selected="true" data-apps-tab="mail"><img class="app-badge" src="icons/mail.png" alt="" width="22" height="22">Apple Mail</button>
+      <button type="button" class="apps-tab" role="tab" aria-selected="false" data-apps-tab="discord"><img class="app-badge" src="icons/discord.png" alt="" width="22" height="22">Discord</button>
+      <button type="button" class="apps-tab" role="tab" aria-selected="false" data-apps-tab="whatsapp"><img class="app-badge" src="icons/whatsapp.png" alt="" width="22" height="22">WhatsApp</button>
+      <button type="button" class="apps-tab" role="tab" aria-selected="false" data-apps-tab="custom"><span class="app-badge" style="background:#8E8E93;">+</span>Any other app</button>
+    </div>
+
+    <!-- [[NEED: real screenshot of the v0.12 composer panel next to a Discord window and a WhatsApp window, from the author's Mac]]
+         Until then the windows below are drawn in HTML/CSS with example chats, so the mechanism is visible. -->
+    <div class="apps-stage">
+
+      <!-- Host app windows -->
+      <div class="win ml" data-apps-pane="mail">
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">Re: Thursday lunch?</div>
+        </div>
+        <div class="ml-fields">
+          <div class="ml-field"><span>To:</span><span class="ml-pill">Sarah Chen</span></div>
+          <div class="ml-field"><span>Subject:</span><span>Re: Thursday lunch?</span></div>
+        </div>
+        <div class="ml-body">Hi Sarah,
+
+12:30 works for me. Could we try somewhere quieter than the 5th Street place? I'd like to hear each other talk.
+
+Best wishes,<span class="chat-caret"></span></div>
+        <div class="ml-quote">On 23 Sep 2026, at 9:15, Sarah Chen wrote:<br>How about 12:30? I'm free after my morning meeting.</div>
+        <div class="chat-foot"><span>↑</span><span><b>Streamed into your draft.</b> Nothing goes out until you click Send.</span></div>
+      </div>
+
+      <div class="win dc" data-apps-pane="discord" hidden>
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">#trip-planning | Climbing crew - Discord</div>
+        </div>
+        <div class="dc-body">
+          <div class="dc-side">
+            <div class="dc-server">Climbing crew</div>
+            <div class="dc-chans">
+              <div class="dc-chan"># general</div>
+              <div class="dc-chan active"># trip-planning</div>
+              <div class="dc-chan"># gear</div>
+              <div class="dc-chan"># beta-videos</div>
+            </div>
+            <div class="dc-me"><div class="dc-av" style="background:#5865F2;">A</div><div>alex_k<small>Online</small></div></div>
+          </div>
+          <div class="dc-main">
+            <div class="dc-chanhead"># trip-planning</div>
+            <div class="dc-msgs">
+              <div class="dc-msg"><div class="dc-av" style="background:#EB459E;">M</div><div><div class="dc-name">mara<span class="dc-time">Today at 4:12 PM</span></div><div class="dc-text">ok who's actually in for Fontainebleau the first weekend of October? need a headcount by tonight for the gîte</div></div></div>
+              <div class="dc-msg"><div class="dc-av" style="background:#57F287;color:#1E1F22;">J</div><div><div class="dc-name">jonas<span class="dc-time">Today at 4:15 PM</span></div><div class="dc-text">in. can drive, 3 seats</div></div></div>
+              <div class="dc-msg"><div class="dc-av" style="background:#FEE75C;color:#1E1F22;">P</div><div><div class="dc-name">priya<span class="dc-time">Today at 4:20 PM</span></div><div class="dc-text">in if we leave friday after 4</div></div></div>
+            </div>
+            <div class="dc-input"><span class="plus">+</span><span>I'm in! I can't leave before 5 on Friday, so I'll ride with whoever goes later. I'll bring both crash pads.<span class="chat-caret"></span></span></div>
+          </div>
+        </div>
+        <div class="chat-foot"><span>↑</span><span><b>Inserted, not sent.</b> Nothing goes out until you press Enter.</span></div>
+      </div>
+
+      <div class="win wa" data-apps-pane="whatsapp" hidden>
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">WhatsApp</div>
+        </div>
+        <div class="wa-body">
+          <div class="wa-list">
+            <div class="wa-chat-row active"><div class="wa-av" style="background:#A78A67;">M</div><div><b>Mom</b><small>Bring the photos from Lisbon…</small></div></div>
+            <div class="wa-chat-row"><div class="wa-av" style="background:#5B8DEF;">C</div><div><b>Climbing crew</b><small>jonas: 3 seats</small></div></div>
+            <div class="wa-chat-row"><div class="wa-av" style="background:#8E8E93;">S</div><div><b>Sam</b><small>call you later</small></div></div>
+          </div>
+          <div class="wa-main">
+            <div class="wa-head"><div class="wa-av" style="background:#A78A67;">M</div><div>Mom<small>online</small></div></div>
+            <div class="wa-msgs">
+              <div class="wa-bubble">Are you coming on Sunday? Grandma is asking. Lunch is at 1.<div class="t">10:42</div></div>
+              <div class="wa-bubble out">Should work, let me check with work first<div class="t">10:51</div></div>
+              <div class="wa-bubble">Bring the photos from Lisbon if you can 🙂<div class="t">10:52</div></div>
+            </div>
+            <div class="wa-input"><span>Yes, I'll be there at 1 🙂 I'll bring the Lisbon photos. Should I bring a dessert too?<span class="chat-caret"></span></span></div>
+          </div>
+        </div>
+        <div class="chat-foot"><span>↑</span><span><b>Inserted, not sent.</b> Nothing goes out until you press Enter.</span></div>
+      </div>
+
+      <div class="win" data-apps-pane="custom" hidden>
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">Settings — General</div>
+        </div>
+        <div class="st-body">
+          <div class="st-title">Compose from a Screenshot</div>
+          <div class="st-group">
+            <div class="st-row"><img class="st-icon" src="icons/discord.png" alt="" width="26" height="26"><div class="st-name">Discord</div><div class="st-switch" role="img" aria-label="On"></div></div>
+            <div class="st-row"><img class="st-icon" src="icons/whatsapp.png" alt="" width="26" height="26"><div class="st-name">WhatsApp</div><div class="st-switch" role="img" aria-label="On"></div></div>
+            <div class="st-row"><img class="st-icon" src="icons/slack.png" alt="" width="26" height="26"><div class="st-name">Slack<small>com.tinyspeck.slackmacgap</small></div><div class="st-minus" role="img" aria-label="Remove">−</div></div>
+          </div>
+          <span class="st-add">Add App…</span>
+          <p class="st-foot">Off for every app until you switch it on here, so using only Mail never asks for Screen Recording. Needs a vision-capable model plus Screen Recording and Accessibility permissions. The list is kept across updates.</p>
+          <div class="st-more">
+            <span>Shortcut <kbd>⌥ H</kbd></span>
+            <span>Launch at login <b style="color:var(--ink);font-weight:500;">On</b></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Composer panels, one per host app -->
+      <div class="win" data-apps-pane="mail">
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">Apple Mail AI Plugin</div>
+        </div>
+        <div class="cp-head"><div class="cp-dot" style="background:#34C759;"></div><div><div class="cp-title">Thursday lunch?</div><div class="cp-sub">3 messages · Sarah Chen</div></div></div>
+        <div class="cp-body">
+          <div class="cp-card">
+            <div class="cp-card-head"><div class="cp-card-label">Reply context</div></div>
+            <div class="cp-thread">
+              <div class="cp-trow"><b>Sarah Chen</b><span>Tue 3:41 PM</span><em>Hey! Want to grab lunch on Thursday? I was thinking that new place on 5th street.</em></div>
+              <div class="cp-trow"><b>You</b><span>Tue 4:02 PM</span><em>Sounds good! What time works for you?</em></div>
+              <div class="cp-trow"><b>Sarah Chen</b><span>Wed 9:15 AM</span><em>How about 12:30? I'm free after my morning meeting.</em></div>
+            </div>
+          </div>
+          <div>
+            <div class="cp-label">Your thoughts</div>
+            <div class="cp-prompt">yes, 12:30 works. suggest somewhere quiet.</div>
+          </div>
+          <div>
+            <div class="cp-label"><span class="demo-model-dot sm" style="background:#D97757;"></span>Claude reply</div>
+            <div class="cp-reply">Hi Sarah,<br><br>12:30 works for me. Could we try somewhere quieter than the 5th Street place? I'd like to hear each other talk.<br><br>Best wishes,</div>
+          </div>
+          <div class="cp-actions"><span class="cp-primary">Copy message</span><span class="cp-secondary">Regenerate</span><span class="cp-secondary">Summarize thread</span></div>
+          <div class="cp-note"><span class="dotacc">●</span><span>Streams into your Mail draft as it's written. No setup, no extra permissions. You read it, then click Send.</span></div>
+        </div>
+      </div>
+
+      <div class="win" data-apps-pane="discord" hidden>
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">Apple Mail AI Plugin</div>
+        </div>
+        <div class="cp-head"><div class="cp-dot"></div><div><div class="cp-title">#trip-planning | Climbing crew - Discord</div><div class="cp-sub">Discord · screenshot attached</div></div></div>
+        <div class="cp-body">
+          <div class="cp-card">
+            <div class="cp-card-head"><div class="cp-card-label">Discord · screenshot</div><span class="cp-chip">⟲ Retake</span></div>
+            <div class="cp-thumb th-dc" role="img" aria-label="Thumbnail of the Discord window the model will see"><div class="th-side"><i class="mid"></i><i class="short"></i><i class="mid"></i><i class="short"></i></div><div class="th-main"><i class="long"></i><i class="short"></i><i class="mid"></i><i class="box"></i></div></div>
+            <div class="cp-thumb-cap">This screenshot is sent to the selected model as the conversation context.</div>
+          </div>
+          <div>
+            <div class="cp-label">Your thoughts</div>
+            <div class="cp-prompt">in, can't leave before 5 friday, bringing both crash pads</div>
+          </div>
+          <div>
+            <div class="cp-label"><span class="demo-model-dot sm" style="background:#D97757;"></span>Claude message</div>
+            <div class="cp-reply">I'm in! I can't leave before 5 on Friday, so I'll ride with whoever goes later. I'll bring both crash pads.</div>
+          </div>
+          <div class="cp-actions"><span class="cp-primary">Insert into Discord</span><span class="cp-secondary">Regenerate</span><span class="cp-secondary">Summarize chat</span></div>
+          <div class="cp-note"><span class="dotacc">●</span><span>Lands in the message box. You read it, then press Enter.</span></div>
+        </div>
+      </div>
+
+      <div class="win" data-apps-pane="whatsapp" hidden>
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">Apple Mail AI Plugin</div>
+        </div>
+        <div class="cp-head"><div class="cp-dot"></div><div><div class="cp-title">WhatsApp</div><div class="cp-sub">WhatsApp · screenshot attached</div></div></div>
+        <div class="cp-body">
+          <div class="cp-card">
+            <div class="cp-card-head"><div class="cp-card-label">WhatsApp · screenshot</div><span class="cp-chip">⟲ Retake</span></div>
+            <div class="cp-thumb th-wa" role="img" aria-label="Thumbnail of the WhatsApp window the model will see"><div class="th-side"><i class="mid"></i><i class="short"></i><i class="mid"></i></div><div class="th-main"><i class="mid"></i><i class="short right"></i><i class="mid"></i><i class="box"></i></div></div>
+            <div class="cp-thumb-cap">This screenshot is sent to the selected model as the conversation context.</div>
+          </div>
+          <div>
+            <div class="cp-label">Your thoughts</div>
+            <div class="cp-prompt">yes coming, bringing the photos, ask if i should bring dessert</div>
+          </div>
+          <div>
+            <div class="cp-label"><span class="demo-model-dot sm" style="background:#10A37F;"></span>ChatGPT message</div>
+            <div class="cp-reply">Yes, I'll be there at 1 🙂 I'll bring the Lisbon photos. Should I bring a dessert too?</div>
+          </div>
+          <div class="cp-actions"><span class="cp-primary">Insert into WhatsApp</span><span class="cp-secondary">Regenerate</span><span class="cp-secondary">Summarize chat</span></div>
+          <div class="cp-note"><span class="dotacc">●</span><span>Lands in the message box. You read it, then press Enter.</span></div>
+        </div>
+      </div>
+
+      <div class="win" data-apps-pane="custom" hidden>
+        <div class="titlebar">
+          <div class="lights"><div class="light r"></div><div class="light y"></div><div class="light g"></div></div>
+          <div class="title">Apple Mail AI Plugin</div>
+        </div>
+        <div class="cp-head"><div class="cp-dot"></div><div><div class="cp-title">general (Channel) - Climbing crew - Slack</div><div class="cp-sub">Slack · screenshot attached</div></div></div>
+        <div class="cp-body">
+          <div class="cp-card">
+            <div class="cp-card-head"><div class="cp-card-label">Slack · screenshot</div><span class="cp-chip">⟲ Retake</span></div>
+            <div class="cp-thumb th-sl" role="img" aria-label="Thumbnail of the Slack window the model will see"><div class="th-side"><i class="mid"></i><i class="short"></i><i class="mid"></i><i class="short"></i></div><div class="th-main"><i class="long"></i><i class="mid"></i><i class="short"></i><i class="box"></i></div></div>
+            <div class="cp-thumb-cap">This screenshot is sent to the selected model as the conversation context.</div>
+          </div>
+          <div>
+            <div class="cp-label">Your thoughts</div>
+            <div class="cp-prompt">thursday works, ask for the agenda first</div>
+          </div>
+          <div>
+            <div class="cp-label"><span class="demo-model-dot sm" style="background:#4285F4;"></span>Gemini message</div>
+            <div class="cp-reply">Thursday works for me. Could you send the agenda beforehand so I can prep the numbers?</div>
+          </div>
+          <div class="cp-actions"><span class="cp-primary">Insert into Slack</span><span class="cp-secondary">Regenerate</span><span class="cp-secondary">Summarize chat</span></div>
+          <div class="cp-note"><span class="dotacc">●</span><span>Apps you add get the same panel. If the plugin can't reach the app's message box, the text is on your clipboard.</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="apps-caption">Example thread and chats, so you can see the mechanism. The panel matches v0.12.</p>
+
+    <ol class="apps-steps">
+      <li><strong>Switch on the chat apps.</strong> Mail needs no setup. For the rest: Settings → General → Compose from a Screenshot. Discord and WhatsApp are one toggle each. Add App… picks anything else.</li>
+      <li><strong>Press <kbd>⌥H</kbd> in the chat.</strong> The plugin screenshots the front window, shows you the thumbnail it will send, and you type what you want to say.</li>
+      <li><strong>Read it, then send it yourself.</strong> Insert puts the message into the chat box, unsent. Press Enter when it says what you mean.</li>
+    </ol>
+    <p class="apps-limits">
+      Needs a model that can read images (current Claude, GPT, and Gemini models all do), plus two
+      macOS permissions: Screen Recording to take the screenshot and Accessibility to type into the
+      chat box. Without Screen Recording it writes from your notes alone. Without Accessibility it
+      copies the message to your clipboard. Both stay off until you switch on your first app, so
+      Mail-only use never asks for them.
+    </p>
+  </section>
+
   <section id="features" class="section features">
     <div class="section-head">
       <span class="eyebrow">Three principles</span>
@@ -639,7 +1097,7 @@
       <div>
         <div class="index">01</div>
         <h3>Reads the whole conversation</h3>
-        <p>The AI gets the full email thread as context — not just the last message. It sees what's been said, who said it, and what still needs a response.</p>
+        <p>In Mail, the AI gets the full email thread as context. It sees what's been said, who said it, and what still needs a response. In Discord or WhatsApp it reads a screenshot of the window instead.</p>
       </div>
       <div>
         <div class="win">
@@ -688,17 +1146,17 @@
           <div class="mviz-list">
             <div class="mviz-row active" data-mviz-row>
               <div class="mviz-dot" style="background:#D97757;"></div>
-              <div class="mviz-body"><div class="mviz-name">Claude</div><div class="mviz-sub">claude-opus-5</div></div>
+              <div class="mviz-body"><div class="mviz-name">Claude</div><div class="mviz-sub" data-model-ids="anthropic/claude-">claude-opus-5.5 · claude-fable-5.1 · claude-opus-5</div></div>
               <div class="mviz-check">✓</div>
             </div>
             <div class="mviz-row" data-mviz-row>
               <div class="mviz-dot" style="background:#10A37F;"></div>
-              <div class="mviz-body"><div class="mviz-name">ChatGPT</div><div class="mviz-sub">gpt-5.6</div></div>
+              <div class="mviz-body"><div class="mviz-name">ChatGPT</div><div class="mviz-sub" data-model-ids="openai/gpt-">gpt-6-luna · gpt-6-sol · gpt-6-astra</div></div>
               <div class="mviz-check">✓</div>
             </div>
             <div class="mviz-row" data-mviz-row>
               <div class="mviz-dot" style="background:#4285F4;"></div>
-              <div class="mviz-body"><div class="mviz-name">Gemini</div><div class="mviz-sub">gemini-3.6-flash</div></div>
+              <div class="mviz-body"><div class="mviz-name">Gemini</div><div class="mviz-sub" data-model-ids="google/gemini-">gemini-3.8-flash · gemini-3.7-flash · gemini-3.6-flash</div></div>
               <div class="mviz-check">✓</div>
             </div>
             <div class="mviz-row" data-mviz-row>
@@ -712,6 +1170,7 @@
               <div class="mviz-check">✓</div>
             </div>
           </div>
+          <div class="mviz-foot" data-model-live hidden><span class="dotacc">●</span>Newest releases per provider, live from OpenRouter's public model list.</div>
         </div>
       </div>
     </div>
@@ -776,8 +1235,8 @@
       <h2>Free forever.<br>Read the source.</h2>
       <p>MIT licensed. Audit the code, file an issue, send a patch. Built by one person, for people who take email seriously.</p>
       <div class="stats">
-        <div class="stat"><div class="n" data-gh-stars>2.1k</div><div class="l">★ stars</div></div>
-        <div class="stat"><div class="n" data-gh-version>v1.4</div><div class="l">latest release</div></div>
+        <div class="stat"><div class="n" data-gh-stars>13</div><div class="l">★ stars</div></div>
+        <div class="stat"><div class="n" data-gh-version>v0.12.0</div><div class="l">latest release</div></div>
         <div class="stat"><div class="n">MIT</div><div class="l">license</div></div>
       </div>
       <a href="https://github.com/jpwahle/ai-apple-mail" class="btn btn--ghost">github.com/jpwahle/ai-apple-mail</a>
@@ -786,7 +1245,7 @@
 
   <footer class="site-footer">
     <div class="site-footer-row">
-      <div>MIT License · Made by Jan Philip Wahle · Not affiliated with Apple Inc.</div>
+      <div>MIT License · Made by Jan Philip Wahle · Not affiliated with Apple, Discord, WhatsApp, or Slack. App names and icons belong to their owners.</div>
       <div class="links">
         <a href="https://github.com/jpwahle/ai-apple-mail">GitHub</a>
         <a href="https://github.com/jpwahle/ai-apple-mail/releases/latest">Releases</a>
@@ -811,6 +1270,12 @@
         a: "No. The plugin runs entirely on your Mac. You bring an API key from Anthropic, OpenAI, or Google, and it sits in the macOS Keychain alongside your other credentials. If you run a local model through Ollama or LM Studio, you don't even need that." },
       { q: 'Does my email get sent to some server?',
         a: "Only to the AI provider you chose, using your key — the plugin calls the provider's API directly, with no middleman server. With a local model, your email never leaves the Mac at all." },
+      { q: 'Does it work outside Apple Mail, in Discord or WhatsApp?',
+        a: 'Yes. Switch on Discord, WhatsApp, or any app you pick under Settings → General → Compose from a Screenshot. In those apps the plugin screenshots the chat window, sends it to your model as the context, and puts the finished message into the chat box. It never sends the message. You read it and press Enter.' },
+      { q: 'What does it need to work in Discord or WhatsApp?',
+        a: 'Two macOS permissions and a model that can read images. Screen Recording lets the plugin screenshot the window, Accessibility lets it type into the chat box, and current Claude, GPT, and Gemini models all read screenshots. Without Screen Recording it writes from your notes alone. Without Accessibility it copies the message to your clipboard. Both stay off until you switch on your first app.' },
+      { q: 'Where does the screenshot go?',
+        a: 'To the AI provider you chose, attached to that one request, and nowhere else. The composer shows you the exact thumbnail before you generate, with a Retake button. The plugin keeps the image in memory for the request and never writes it to disk.' },
       { q: 'Which macOS versions are supported?',
         a: 'macOS Sonoma (14) and newer, on Intel and Apple Silicon.' },
       { q: 'How much does it cost?',
@@ -997,6 +1462,55 @@
     }
 
     // ------------------------------------------------------------
+    // "New in vX.Y" eyebrow: fresh for 90 days after the ship date, and
+    // only while the latest release is still that minor version (see the
+    // release fetch below). Otherwise the neutral static label stays.
+    // ------------------------------------------------------------
+    var newEyebrow = document.querySelector('[data-new-in]');
+    var NEW_FOR_DAYS = 90;
+    var eyebrowDefault = newEyebrow ? newEyebrow.textContent : '';
+    if (newEyebrow) {
+      var shippedAt = Date.parse(newEyebrow.dataset.shipped);
+      var ageDays = (Date.now() - shippedAt) / 86400000;
+      if (!isNaN(ageDays) && ageDays >= 0 && ageDays < NEW_FOR_DAYS) {
+        newEyebrow.textContent = newEyebrow.dataset.newLabel;
+      }
+    }
+
+    // ------------------------------------------------------------
+    // Chat apps showcase: tabs, auto-rotate until the reader picks one
+    // ------------------------------------------------------------
+    var appsTabs = document.querySelectorAll('[data-apps-tab]');
+    var appsPanes = document.querySelectorAll('[data-apps-pane]');
+    var appsOrder = ['mail', 'discord', 'whatsapp', 'custom'];
+    var appsIdx = 0;
+    var appsTimer = null;
+
+    function showApp(key) {
+      appsTabs.forEach(function (tab) {
+        tab.setAttribute('aria-selected', String(tab.dataset.appsTab === key));
+      });
+      appsPanes.forEach(function (pane) {
+        pane.hidden = pane.dataset.appsPane !== key;
+      });
+    }
+
+    appsTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        if (appsTimer) { clearInterval(appsTimer); appsTimer = null; }
+        appsIdx = appsOrder.indexOf(tab.dataset.appsTab);
+        showApp(tab.dataset.appsTab);
+      });
+    });
+
+    if (appsTabs.length && !REDUCED_MOTION) {
+      appsTimer = setInterval(function () {
+        appsIdx = (appsIdx + 1) % appsOrder.length;
+        showApp(appsOrder[appsIdx]);
+      }, 7000);
+    }
+
+    // ------------------------------------------------------------
     // Scroll reveal
     // ------------------------------------------------------------
     if ('IntersectionObserver' in window && !REDUCED_MOTION) {
@@ -1026,6 +1540,14 @@
 
         document.querySelectorAll('[data-gh-version]').forEach(function (el) { el.textContent = version; });
 
+        // A newer minor or major release retires the "New in" label.
+        if (newEyebrow) {
+          var minor = version.replace(/^v/, '').split('.').slice(0, 2).join('.');
+          if (minor !== newEyebrow.dataset.newIn) {
+            newEyebrow.textContent = eyebrowDefault;
+          }
+        }
+
         var btn = document.getElementById('download-btn');
         if (btn) {
           if (dmg) btn.href = dmg.browser_download_url;
@@ -1034,6 +1556,51 @@
         }
       })
       .catch(function () {});
+
+    // ------------------------------------------------------------
+    // Model IDs in the picker mock: newest three text models per provider
+    // family (claude-, gpt-, gemini-) from OpenRouter's public list (no key,
+    // CORS open), so the page never shows last season's models. scripts/refresh_landing_models.py applies
+    // the same rule to the static fallback text once a week.
+    // ------------------------------------------------------------
+    // Whole segments only ("gpt-5-mini" yes, "gemini-3.8-flash" no).
+    var MODEL_SKIP = /(^|[-._])(haiku|mini|nano|lite|guard|image|audio|tts|realtime|embed|embedding|search|transcribe|moderation|codex|thinking|small|oss)([-._]|$)/;
+    var modelSlots = document.querySelectorAll('[data-model-ids]');
+    if (modelSlots.length) {
+      fetch('https://openrouter.ai/api/v1/models')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var models = (data && data.data) || [];
+          var filled = 0;
+          modelSlots.forEach(function (slot) {
+            // e.g. "google/gemini-": the provider and the family the row stands for
+            var prefix = slot.dataset.modelIds;
+            var picks = [];
+            var have = {};
+            models.forEach(function (m) {
+              var id = m && m.id || '';
+              if (id.indexOf(prefix) !== 0 || id.indexOf(':') !== -1) return;
+              var out = (m.architecture && m.architecture.output_modalities) || ['text'];
+              if (out.indexOf('text') === -1) return;
+              var slug = id.slice(id.indexOf('/') + 1);
+              if (MODEL_SKIP.test(slug)) return;
+              picks.push({ slug: slug, created: m.created || 0 });
+              have[slug] = true;
+            });
+            // A "-pro" variant is the same release as its base model.
+            picks = picks.filter(function (p) { return !(/-pro$/.test(p.slug) && have[p.slug.replace(/-pro$/, '')]); });
+            picks.sort(function (a, b) { return (b.created - a.created) || a.slug.localeCompare(b.slug); });
+            if (picks.length) {
+              slot.textContent = picks.slice(0, 3).map(function (p) { return p.slug; }).join(' · ');
+              filled++;
+            }
+          });
+          if (filled === modelSlots.length) {
+            document.querySelectorAll('[data-model-live]').forEach(function (el) { el.hidden = false; });
+          }
+        })
+        .catch(function () {});
+    }
 
     fetch('https://api.github.com/repos/jpwahle/ai-apple-mail')
       .then(function (r) { return r.json(); })
